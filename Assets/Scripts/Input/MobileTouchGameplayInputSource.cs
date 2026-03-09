@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityInput = UnityEngine.Input;
 
 namespace Tetris.Input
 {
@@ -18,14 +19,14 @@ namespace Tetris.Input
 
         public GameplayInputSnapshot ReadSnapshot()
         {
-            if (Input.touchCount <= 0)
+            if (UnityInput.touchCount <= 0)
             {
                 return default;
             }
 
-            for (var i = 0; i < Input.touchCount; i++)
+            for (var i = 0; i < UnityInput.touchCount; i++)
             {
-                var touch = Input.GetTouch(i);
+                var touch = UnityInput.GetTouch(i);
 
                 if (!hasActiveTouch && touch.phase == TouchPhase.Began)
                 {
