@@ -1,0 +1,59 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+UserSettings/
+
+# Addressables and generated data
+Assets/AddressableAssetsData/*/*.bin*
+Assets/StreamingAssets/aa/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity cache files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.opendb.meta
+
+# Crash and diagnostics
+sysinfo.txt
+*.stacktrace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Android build artifacts
+.gradle/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Tools
+*.apk.meta
+*.aab.meta
+
+# Keep source assets and settings tracked
+!/[Aa]ssets/**
+!/[Pp]rojectSettings/**
+!/[Pp]ackages/**
