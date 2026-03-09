@@ -2,6 +2,8 @@
 using System.IO;
 using Tetris.Bootstrap;
 using Tetris.Core;
+using Tetris.Gameplay;
+using Tetris.Input;
 using Tetris.UI;
 using Tetris.VFX;
 using UnityEditor;
@@ -22,7 +24,7 @@ namespace Tetris.Editor
 
         private static readonly string[] ScriptFolders =
         {
-            "Core", "Bootstrap", "Gameplay", "UI", "Audio", "VFX", "Data", "Utils"
+            "Core", "Bootstrap", "Gameplay", "Input", "UI", "Audio", "VFX", "Data", "Utils"
         };
 
         [MenuItem("Tools/Tetris/Apply Initial Project Setup")]
@@ -62,6 +64,7 @@ namespace Tetris.Editor
             registrySerialized.FindProperty("gameConfig").objectReferenceValue = gameConfig;
             registrySerialized.FindProperty("visualThemeConfig").objectReferenceValue = visualConfig;
             registrySerialized.FindProperty("uiThemeConfig").objectReferenceValue = uiConfig;
+            registrySerialized.FindProperty("vfxFeedbackConfig").objectReferenceValue = vfxConfig;
             registrySerialized.ApplyModifiedPropertiesWithoutUndo();
 
             SerializedObject gameConfigSerialized = new(gameConfig);
@@ -100,7 +103,7 @@ namespace Tetris.Editor
             scene.name = "MainMenu";
 
             CreateEnvironmentRoot();
-            CreateUIStructure("MainMenu", includeBoardRoot: false);
+            CreateUIStructure("MainMenu");
 
             GameObject screenRoot = new("MainMenuScreenRoot", typeof(RectTransform), typeof(MainMenuScreenRoot));
             RectTransform rectTransform = screenRoot.GetComponent<RectTransform>();
@@ -119,21 +122,7 @@ namespace Tetris.Editor
             scene.name = "Gameplay";
 
             CreateEnvironmentRoot();
-            GameObject boardRoot = new("BoardRoot");
-            boardRoot.transform.position = Vector3.zero;
-
-            CreateUIStructure("Gameplay", includeBoardRoot: true);
-
-            GameObject gameplayScreenRoot = new("GameplayScreenRoot", typeof(RectTransform), typeof(GameplayScreenRoot));
-            RectTransform rectTransform = gameplayScreenRoot.GetComponent<RectTransform>();
-            rectTransform.SetParent(GameObject.Find("SafeAreaRoot").transform, false);
-            rectTransform.anchorMin = Vector2.zero;
-            rectTransform.anchorMax = Vector2.one;
-            rectTransform.offsetMin = Vector2.zero;
-            rectTransform.offsetMax = Vector2.zero;
-
-            GameObject feedbackRoot = new("ScreenFeedback", typeof(ScreenFeedbackController));
-            feedbackRoot.transform.SetParent(GameObject.Find("GameplayRoot").transform, false);
+            CreateGameplaySceneStructure();
 
             SaveScene(scenePath, scene);
         }
@@ -151,7 +140,7 @@ namespace Tetris.Editor
             cameraComponent.backgroundColor = new Color(0.03f, 0.04f, 0.09f);
         }
 
-        private static void CreateUIStructure(string sceneLabel, bool includeBoardRoot)
+        private static void CreateUIStructure(string sceneLabel)
         {
             GameObject root = new($"{sceneLabel}Root");
 
@@ -170,27 +159,49 @@ namespace Tetris.Editor
             safeAreaRect.offsetMin = Vector2.zero;
             safeAreaRect.offsetMax = Vector2.zero;
 
-            if (includeBoardRoot)
-            {
-                GameObject gameplayLayer = new("GameplayLayer", typeof(RectTransform));
-                RectTransform layerRect = gameplayLayer.GetComponent<RectTransform>();
-                layerRect.SetParent(safeAreaRoot.transform, false);
-                layerRect.anchorMin = new Vector2(0f, 0f);
-                layerRect.anchorMax = new Vector2(1f, 0.7f);
-                layerRect.offsetMin = Vector2.zero;
-                layerRect.offsetMax = Vector2.zero;
-
-                GameObject overlayLayer = new("OverlayLayer", typeof(RectTransform));
-                RectTransform overlayRect = overlayLayer.GetComponent<RectTransform>();
-                overlayRect.SetParent(safeAreaRoot.transform, false);
-                overlayRect.anchorMin = new Vector2(0f, 0.7f);
-                overlayRect.anchorMax = Vector2.one;
-                overlayRect.offsetMin = Vector2.zero;
-                overlayRect.offsetMax = Vector2.zero;
-            }
-
             GameObject eventSystem = new("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             eventSystem.transform.SetParent(root.transform, false);
+        }
+
+        private static void CreateGameplaySceneStructure()
+        {
+            CreateUIStructure("Gameplay");
+
+            Transform safeAreaRoot = GameObject.Find("SafeAreaRoot").transform;
+            GameObject gameplayScreenRoot = new("GameplayScreenRoot", typeof(RectTransform), typeof(GameplayScreenRoot), typeof(GameplayLayoutRoot));
+            RectTransform gameplayRect = gameplayScreenRoot.GetComponent<RectTransform>();
+            gameplayRect.SetParent(safeAreaRoot, false);
+            gameplayRect.anchorMin = Vector2.zero;
+            gameplayRect.anchorMax = Vector2.one;
+            gameplayRect.offsetMin = Vector2.zero;
+            gameplayRect.offsetMax = Vector2.zero;
+
+            GameObject backgroundRoot = new("BackgroundRoot", typeof(RectTransform));
+            ConfigureChildLayout(backgroundRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
+
+            GameObject boardRoot = new("BoardRoot", typeof(RectTransform), typeof(BoardLayoutAnchor));
+            ConfigureChildLayout(boardRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.1f, 0.16f), new Vector2(0.9f, 0.78f));
+
+            GameObject hudRoot = new("HUDRoot", typeof(RectTransform), typeof(HUDLayoutAnchor));
+            ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0.78f), new Vector2(1f, 1f));
+
+            GameObject controlsRoot = new("ControlsRoot", typeof(RectTransform), typeof(ControlsLayoutAnchor));
+            ConfigureChildLayout(controlsRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 0.16f));
+
+            GameObject feedbackRoot = new("FeedbackRoot", typeof(RectTransform), typeof(FeedbackLayoutAnchor), typeof(ScreenFeedbackController));
+            ConfigureChildLayout(feedbackRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
+
+            GameObject inputRoot = new("GameplayInputRouter", typeof(GameplayInputRouter));
+            inputRoot.transform.SetParent(GameObject.Find("GameplayRoot").transform, false);
+        }
+
+        private static void ConfigureChildLayout(RectTransform child, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            child.SetParent(parent, false);
+            child.anchorMin = anchorMin;
+            child.anchorMax = anchorMax;
+            child.offsetMin = Vector2.zero;
+            child.offsetMax = Vector2.zero;
         }
 
         private static void SaveScene(string scenePath, Scene scene)

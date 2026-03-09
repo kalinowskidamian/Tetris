@@ -23,23 +23,25 @@ Contents:
 - `EnvironmentRoot` + camera
 - `MainMenuRoot`
   - `Canvas`
-  - `SafeAreaRoot`
-  - `MainMenuScreenRoot`
+    - `SafeAreaRoot`
+      - `MainMenuScreenRoot`
   - `EventSystem`
 
-## Gameplay Scene
+## Gameplay Scene (Portrait-First)
 Purpose:
-- separate board/world and UI layers for future gameplay features
-- reserve structure for game-feel and feedback systems
+- separate portrait gameplay zones for board focus, HUD readability, touch controls, and feedback overlays
+- provide explicit anchor points for future gameplay and UI systems
 
 Contents:
 - `EnvironmentRoot` + camera
-- `BoardRoot`
 - `GameplayRoot`
   - `Canvas`
-  - `SafeAreaRoot`
-    - `GameplayLayer`
-    - `OverlayLayer`
-    - `GameplayScreenRoot`
+    - `SafeAreaRoot`
+      - `GameplayScreenRoot` (`GameplayLayoutRoot`)
+        - `BackgroundRoot`
+        - `BoardRoot` (`BoardLayoutAnchor`)
+        - `HUDRoot` (`HUDLayoutAnchor`)
+        - `ControlsRoot` (`ControlsLayoutAnchor`)
+        - `FeedbackRoot` (`FeedbackLayoutAnchor`, `ScreenFeedbackController`)
   - `EventSystem`
-  - `ScreenFeedback`
+  - `GameplayInputRouter`
