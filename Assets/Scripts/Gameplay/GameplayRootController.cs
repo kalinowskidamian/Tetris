@@ -1,6 +1,7 @@
 using Tetris.Gameplay.Domain;
 using Tetris.Gameplay.Rendering;
 using Tetris.Gameplay.Runtime;
+using UnityInput = UnityEngine.Input;
 using UnityEngine;
 
 namespace Tetris.Gameplay
@@ -70,33 +71,33 @@ namespace Tetris.Gameplay
         {
             var changed = false;
 
-            if (Input.GetKeyDown(KeyCode.LeftArrow))
+            if (UnityInput.GetKeyDown(KeyCode.LeftArrow))
             {
                 changed |= gameplayRuntime.TryMove(-1, 0);
             }
 
-            if (Input.GetKeyDown(KeyCode.RightArrow))
+            if (UnityInput.GetKeyDown(KeyCode.RightArrow))
             {
                 changed |= gameplayRuntime.TryMove(1, 0);
             }
 
-            if (Input.GetKeyDown(KeyCode.DownArrow))
+            if (UnityInput.GetKeyDown(KeyCode.DownArrow))
             {
                 gameplayRuntime.StepDownAndLockIfNeeded();
                 changed = true;
             }
 
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.X))
+            if (UnityInput.GetKeyDown(KeyCode.UpArrow) || UnityInput.GetKeyDown(KeyCode.X))
             {
                 changed |= gameplayRuntime.TryRotate(1);
             }
 
-            if (Input.GetKeyDown(KeyCode.Z))
+            if (UnityInput.GetKeyDown(KeyCode.Z))
             {
                 changed |= gameplayRuntime.TryRotate(-1);
             }
 
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (UnityInput.GetKeyDown(KeyCode.Space))
             {
                 gameplayRuntime.HardDropAndLock();
                 changed = true;
