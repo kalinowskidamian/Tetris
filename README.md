@@ -1,7 +1,7 @@
 # Neon Tetris Foundation (Unity 6 URP)
 
 ## Project Purpose
-This repository contains the production foundation for an Android mobile game inspired by Tetris with a neon / sci-fi visual direction. The current implementation focuses on scalable project setup, scene architecture, and configuration systems. No gameplay loop is implemented yet.
+This repository contains the production foundation for an Android mobile game inspired by Tetris with a neon / sci-fi visual direction. The current implementation includes the first gameplay domain/runtime pass: board occupancy, tetromino definitions, 7-bag piece generation, active piece runtime flow, and a minimal board renderer for in-scene inspection.
 
 ## Unity Version
 - **Unity Editor:** `6000.3.10f1`
@@ -32,6 +32,21 @@ Script domains under `Assets/Scripts/`:
 - `VFX`
 - `Data`
 - `Utils`
+
+
+## Gameplay Foundation (Current)
+- Board domain model (`BoardModel`) with bounds checks, occupancy, fit validation, locking, and line clears.
+- Data-driven tetromino definitions (`PieceDefinition`) with classic 7-piece library and rotation states.
+- Runtime service (`GameplayRuntime`) for spawn, move, rotate, step-down lock, hard drop, and next piece flow.
+- Isolated 7-bag randomizer (`BagPieceGenerator`).
+- Unity gameplay integration via `GameplayRootController` + `GameplayBoardRenderer` attached to `BoardLayoutAnchor`.
+
+Editor controls in `Gameplay` scene for inspection:
+- Left/Right arrows: move
+- Down arrow: soft step
+- Up/X: rotate clockwise
+- Z: rotate counter-clockwise
+- Space: hard drop
 
 ## Initial Setup Tool
 Use the menu command below to create/update all foundational assets in an idempotent way:
@@ -66,4 +81,5 @@ What this menu action ensures:
 - [Setup Workflow](Docs/SetupWorkflow.md)
 - [Game Vision](Docs/GameVision.md)
 - [Architecture](Docs/Architecture.md)
+- [Gameplay Foundation (Pass 1)](Docs/GameplayFoundation.md)
 - [Roadmap](Docs/Roadmap.md)

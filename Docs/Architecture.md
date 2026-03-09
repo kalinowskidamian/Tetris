@@ -49,3 +49,9 @@ Principles:
 - Input is routed through a dedicated gameplay input service layer (`GameplayInputRouter` + `IGameplayInputSource`).
 - Gesture vocabulary is prepared for tap / swipe / hold without binding final gameplay behavior yet.
 - Gameplay systems should consume input snapshots, not raw touch APIs directly.
+
+## Gameplay Foundation (Pass 1)
+- Domain-first gameplay model under `Assets/Scripts/Gameplay/Domain` (`BoardModel`, `PieceDefinition`, classic tetromino library).
+- Runtime orchestration under `Assets/Scripts/Gameplay/Runtime` (`GameplayRuntime`, `BagPieceGenerator`).
+- Unity integration under `Assets/Scripts/Gameplay` + `Rendering` (`GameplayRootController`, `GameplayBoardRenderer`).
+- Current scope intentionally excludes scoring/progression/meta and final audiovisual polish.
