@@ -189,10 +189,13 @@ namespace Tetris.Editor
             ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.04f, 0.8f), new Vector2(0.96f, 0.975f));
 
             GameObject scoreInfoAnchor = new("ScoreInfoAnchor", typeof(RectTransform), typeof(ScoreInfoAnchor));
-            ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.02f, 0.12f), new Vector2(0.62f, 0.92f));
+            ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.02f, 0.14f), new Vector2(0.58f, 0.92f));
+
+            GameObject holdPieceAnchor = new("HoldPiecePreviewAnchor", typeof(RectTransform), typeof(HoldPiecePreviewAnchor));
+            ConfigureChildLayout(holdPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.60f, 0.14f), new Vector2(0.78f, 0.92f));
 
             GameObject nextPieceAnchor = new("NextPiecePreviewAnchor", typeof(RectTransform), typeof(NextPiecePreviewAnchor));
-            ConfigureChildLayout(nextPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.66f, 0.12f), new Vector2(0.98f, 0.92f));
+            ConfigureChildLayout(nextPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.80f, 0.14f), new Vector2(0.98f, 0.92f));
 
             GameObject controlsRoot = new("ControlsRoot", typeof(RectTransform), typeof(ControlsLayoutAnchor));
             ConfigureChildLayout(controlsRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 0.13f));
@@ -209,6 +212,7 @@ namespace Tetris.Editor
             gameplayControllerSerialized.FindProperty("boardAnchor").objectReferenceValue = boardRoot.GetComponent<BoardLayoutAnchor>();
             gameplayControllerSerialized.FindProperty("hudAnchor").objectReferenceValue = hudRoot.GetComponent<HUDLayoutAnchor>();
             gameplayControllerSerialized.FindProperty("nextPiecePreviewAnchor").objectReferenceValue = nextPieceAnchor.GetComponent<NextPiecePreviewAnchor>();
+            gameplayControllerSerialized.FindProperty("holdPiecePreviewAnchor").objectReferenceValue = holdPieceAnchor.GetComponent<HoldPiecePreviewAnchor>();
             gameplayControllerSerialized.FindProperty("scoreInfoAnchor").objectReferenceValue = scoreInfoAnchor.GetComponent<ScoreInfoAnchor>();
             gameplayControllerSerialized.FindProperty("inputRouter").objectReferenceValue = inputRoot.GetComponent<GameplayInputRouter>();
             gameplayControllerSerialized.FindProperty("touchInputSource").objectReferenceValue = inputRoot.GetComponent<MobileTouchGameplayInputSource>();

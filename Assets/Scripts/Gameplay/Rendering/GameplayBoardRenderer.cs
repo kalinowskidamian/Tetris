@@ -23,6 +23,7 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color zPieceColor = new(1f, 0.35f, 0.35f, 1f);
         [SerializeField] private Color jPieceColor = new(0.35f, 0.62f, 1f, 1f);
         [SerializeField] private Color lPieceColor = new(1f, 0.65f, 0.25f, 1f);
+        [SerializeField, Range(0.05f, 0.8f)] private float ghostAlpha = 0.24f;
 
         private readonly List<Image> blocks = new();
         private Sprite blockSprite;
@@ -38,7 +39,7 @@ namespace Tetris.Gameplay.Rendering
             EnsureBoardChrome();
         }
 
-        public void Render(BoardModel board, ActivePieceState? activePiece)
+        public void Render(BoardModel board, ActivePieceState? activePiece, ActivePieceState? ghostPiece)
         {
             if (rootRect == null)
             {
@@ -48,11 +49,12 @@ namespace Tetris.Gameplay.Rendering
             var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio, visibleTopPaddingRows);
             UpdateBoardChrome(metrics);
 
-            var needed = CountBoardCells(board) + CountActiveCells(activePiece);
+            var needed = CountBoardCells(board) + CountActiveCells(activePiece) + CountGhostCells(activePiece, ghostPiece);
             EnsurePool(needed);
 
             var index = 0;
             index = RenderBoard(board, index, metrics);
+            index = RenderGhost(activePiece, ghostPiece, index, metrics);
             index = RenderActive(activePiece, index, metrics);
 
             for (var i = index; i < blocks.Count; i++)
@@ -131,6 +133,35 @@ namespace Tetris.Gameplay.Rendering
             return index;
         }
 
+
+        private int RenderGhost(ActivePieceState? activePiece, ActivePieceState? ghostPiece, int index, BoardMetrics metrics)
+        {
+            if (!activePiece.HasValue || !ghostPiece.HasValue)
+            {
+                return index;
+            }
+
+            var active = activePiece.Value;
+            var ghost = ghostPiece.Value;
+            if (active.Origin.X == ghost.Origin.X && active.Origin.Y == ghost.Origin.Y && active.RotationIndex == ghost.RotationIndex)
+            {
+                return index;
+            }
+
+            var cells = ghost.Definition.GetRotationState(ghost.RotationIndex);
+            var ghostColor = ghost.Definition.TokenColor;
+            ghostColor.a = ghostAlpha;
+
+            for (var i = 0; i < cells.Length; i++)
+            {
+                var worldCell = ghost.Origin + cells[i];
+                var block = blocks[index++];
+                SetupBlock(block, worldCell.X, worldCell.Y, ghostColor, metrics);
+            }
+
+            return index;
+        }
+
         private int RenderActive(ActivePieceState? activePiece, int index, BoardMetrics metrics)
         {
             if (!activePiece.HasValue)
@@ -175,6 +206,24 @@ namespace Tetris.Gameplay.Rendering
             }
 
             return count;
+        }
+
+
+        private static int CountGhostCells(ActivePieceState? activePiece, ActivePieceState? ghostPiece)
+        {
+            if (!activePiece.HasValue || !ghostPiece.HasValue)
+            {
+                return 0;
+            }
+
+            var active = activePiece.Value;
+            var ghost = ghostPiece.Value;
+            if (active.Origin.X == ghost.Origin.X && active.Origin.Y == ghost.Origin.Y && active.RotationIndex == ghost.RotationIndex)
+            {
+                return 0;
+            }
+
+            return ghost.Definition.GetRotationState(ghost.RotationIndex).Length;
         }
 
         private static int CountActiveCells(ActivePieceState? activePiece)

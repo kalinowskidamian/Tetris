@@ -22,6 +22,8 @@ namespace Tetris.Gameplay.Runtime
         public int Score { get; private set; }
         public int LinesCleared { get; private set; }
         public int Level { get; private set; } = 1;
+        public PieceDefinition HeldPiece { get; private set; }
+        public bool CanHoldThisTurn { get; private set; }
 
         public event Action<IReadOnlyList<int>> LinesClearedFeedbackRequested;
         public event Action GameOver;
@@ -32,8 +34,33 @@ namespace Tetris.Gameplay.Runtime
             Score = 0;
             LinesCleared = 0;
             Level = 1;
+            HeldPiece = null;
+            CanHoldThisTurn = true;
             NextPiece = generator.NextPiece();
             SpawnFromNext();
+        }
+
+        public bool TryHoldPiece()
+        {
+            if (!ActivePiece.HasValue || IsGameOver || !CanHoldThisTurn)
+            {
+                return false;
+            }
+
+            var pieceToHold = ActivePiece.Value.Definition;
+            CanHoldThisTurn = false;
+
+            if (HeldPiece == null)
+            {
+                HeldPiece = pieceToHold;
+                SpawnFromNext();
+                return true;
+            }
+
+            var swapPiece = HeldPiece;
+            HeldPiece = pieceToHold;
+            SpawnPiece(swapPiece, refreshHoldAllowance: false);
+            return true;
         }
 
         public bool TryMove(int x, int y)
@@ -119,6 +146,43 @@ namespace Tetris.Gameplay.Runtime
             return LockActivePiece();
         }
 
+        public bool IsActivePieceGrounded()
+        {
+            if (!ActivePiece.HasValue)
+            {
+                return false;
+            }
+
+            return !CanMoveDown(1);
+        }
+
+        public ActivePieceState? GetGhostPiece()
+        {
+            if (!ActivePiece.HasValue)
+            {
+                return null;
+            }
+
+            var active = ActivePiece.Value;
+            var distance = HardDropDistance();
+            return active.With(new CellCoord(active.Origin.X, active.Origin.Y - distance), active.RotationIndex);
+        }
+
+        public bool TryStepDown()
+        {
+            return TryMove(0, -1);
+        }
+
+        public IReadOnlyList<int> LockActivePieceNow()
+        {
+            if (!ActivePiece.HasValue)
+            {
+                return Array.Empty<int>();
+            }
+
+            return LockActivePiece();
+        }
+
         private IReadOnlyList<int> LockActivePiece()
         {
             var active = ActivePiece.Value;
@@ -166,6 +230,11 @@ namespace Tetris.Gameplay.Runtime
         {
             var spawnPiece = NextPiece;
             NextPiece = generator.NextPiece();
+            SpawnPiece(spawnPiece, refreshHoldAllowance: true);
+        }
+
+        private void SpawnPiece(PieceDefinition spawnPiece, bool refreshHoldAllowance)
+        {
             var spawn = new CellCoord(board.Width / 2, board.Height - 2);
             var spawnRotation = spawnPiece.SpawnRotationIndex;
 
@@ -178,6 +247,10 @@ namespace Tetris.Gameplay.Runtime
             }
 
             ActivePiece = new ActivePieceState(spawnPiece, spawn, spawnRotation);
+            if (refreshHoldAllowance)
+            {
+                CanHoldThisTurn = true;
+            }
         }
     }
 }

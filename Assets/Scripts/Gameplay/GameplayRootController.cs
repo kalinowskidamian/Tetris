@@ -16,11 +16,13 @@ namespace Tetris.Gameplay
         [SerializeField, Min(0.05f)] private float baseGravitySeconds = 0.72f;
         [SerializeField, Range(0.75f, 0.98f)] private float gravityLevelMultiplier = 0.92f;
         [SerializeField, Min(0.05f)] private float minGravitySeconds = 0.09f;
+        [SerializeField, Min(0.05f)] private float lockDelaySeconds = 0.45f;
 
         [Header("Scene References")]
         [SerializeField] private BoardLayoutAnchor boardAnchor;
         [SerializeField] private HUDLayoutAnchor hudAnchor;
         [SerializeField] private NextPiecePreviewAnchor nextPiecePreviewAnchor;
+        [SerializeField] private HoldPiecePreviewAnchor holdPiecePreviewAnchor;
         [SerializeField] private ScoreInfoAnchor scoreInfoAnchor;
         [SerializeField] private GameplayInputRouter inputRouter;
         [SerializeField] private MobileTouchGameplayInputSource touchInputSource;
@@ -32,6 +34,7 @@ namespace Tetris.Gameplay
         private GameplayBoardRenderer boardRenderer;
         private GameplayHudRenderer hudRenderer;
         private float gravityTimer;
+        private float lockDelayTimer;
 
         private void Awake()
         {
@@ -59,7 +62,8 @@ namespace Tetris.Gameplay
             var hudRootRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
             var scoreRect = scoreInfoAnchor != null ? scoreInfoAnchor.GetComponent<RectTransform>() : null;
             var previewRect = nextPiecePreviewAnchor != null ? nextPiecePreviewAnchor.GetComponent<RectTransform>() : null;
-            hudRenderer = new GameplayHudRenderer(hudRootRect, scoreRect, previewRect);
+            var holdRect = holdPiecePreviewAnchor != null ? holdPiecePreviewAnchor.GetComponent<RectTransform>() : null;
+            hudRenderer = new GameplayHudRenderer(hudRootRect, scoreRect, previewRect, holdRect);
             ApplyBackdropChrome();
             ConfigureInputRouting();
         }
@@ -128,6 +132,11 @@ namespace Tetris.Gameplay
                 nextPiecePreviewAnchor = FindFirstObjectByType<NextPiecePreviewAnchor>();
             }
 
+            if (holdPiecePreviewAnchor == null)
+            {
+                holdPiecePreviewAnchor = FindFirstObjectByType<HoldPiecePreviewAnchor>();
+            }
+
             if (scoreInfoAnchor == null)
             {
                 scoreInfoAnchor = FindFirstObjectByType<ScoreInfoAnchor>();
@@ -185,7 +194,14 @@ namespace Tetris.Gameplay
             {
                 gameplayRuntime.HardDropAndLock();
                 gravityTimer = 0f;
+                lockDelayTimer = 0f;
                 return true;
+            }
+
+            if (snapshot.HoldRequested)
+            {
+                changed |= gameplayRuntime.TryHoldPiece();
+                lockDelayTimer = 0f;
             }
 
             if (snapshot.TapRequested)
@@ -206,9 +222,13 @@ namespace Tetris.Gameplay
 
             if (snapshot.GestureKind == GestureKind.SwipeDown)
             {
-                gameplayRuntime.StepDownAndLockIfNeeded();
+                changed |= gameplayRuntime.TryStepDown();
                 gravityTimer = 0f;
-                changed = true;
+            }
+
+            if (changed)
+            {
+                RefreshLockDelayAfterAction();
             }
 
             return changed;
@@ -217,19 +237,39 @@ namespace Tetris.Gameplay
         private bool ProcessGravityStep()
         {
             gravityTimer += Time.deltaTime;
-            if (gravityTimer < GetGravityIntervalForLevel(gameplayRuntime.Level))
+            lockDelayTimer += Time.deltaTime;
+
+            var changed = false;
+            if (gravityTimer >= GetGravityIntervalForLevel(gameplayRuntime.Level))
             {
-                return false;
+                gravityTimer = 0f;
+                changed |= gameplayRuntime.TryStepDown();
             }
 
-            gravityTimer = 0f;
-            gameplayRuntime.StepDownAndLockIfNeeded();
-            return true;
+            if (gameplayRuntime.IsActivePieceGrounded() && lockDelayTimer >= lockDelaySeconds)
+            {
+                gameplayRuntime.LockActivePieceNow();
+                lockDelayTimer = 0f;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                RefreshLockDelayAfterAction();
+            }
+
+            return changed;
+        }
+
+        private void RefreshLockDelayAfterAction()
+        {
+            lockDelayTimer = 0f;
         }
 
         private void StartNewRun()
         {
             gravityTimer = 0f;
+            lockDelayTimer = 0f;
             gameplayRuntime.Start();
             Render();
         }
@@ -283,7 +323,7 @@ namespace Tetris.Gameplay
 
         private void Render()
         {
-            boardRenderer.Render(gameplayRuntime.Board, gameplayRuntime.ActivePiece);
+            boardRenderer.Render(gameplayRuntime.Board, gameplayRuntime.ActivePiece, gameplayRuntime.GetGhostPiece());
             hudRenderer?.Render(gameplayRuntime);
         }
     }

@@ -21,7 +21,9 @@ Gameplay code is split into three layers under `Assets/Scripts/Gameplay`:
 - Spawns active piece near top center.
 - Supports move/rotate validation through `BoardModel.CanPlace`.
 - Supports hard-drop distance calculation and lock.
-- Locks active piece when down movement fails.
+- Exposes a ghost projection that tracks the active piece landing row.
+- Supports hold/swap with a one-hold-per-piece-cycle rule.
+- Uses a simple lock-delay timer (piece locks shortly after touching stack/floor unless moved/rotated away).
 - Clears lines, updates progression values, then spawns next piece.
 - Sets game over if spawn cannot fit.
 
@@ -38,7 +40,7 @@ Gameplay code is split into three layers under `Assets/Scripts/Gameplay`:
 `GameplayRootController` is the runtime scene entry component.
 - builds board + runtime on `Awake`
 - creates/uses `GameplayBoardRenderer` on `BoardLayoutAnchor`
-- creates a lightweight HUD renderer for score/lines/level, next preview, and game-over text
+- creates a lightweight HUD renderer for score/lines/level, next + hold previews, and game-over text
 - applies gravity tick in `Update` with level-based speed scaling and a minimum clamp
 - routes input through `GameplayInputRouter` with mobile touch source
 - allows tap-to-restart after game over
@@ -47,7 +49,7 @@ Gameplay code is split into three layers under `Assets/Scripts/Gameplay`:
 `GameplayBoardRenderer` and HUD rendering now apply a darker neon/sci-fi presentation using Unity-native `Image`/`Text` elements only (no imported art).
 
 ## Setup Workflow Compatibility
-No additional generated scene objects are required for this pass. Existing setup-generated anchors are still the integration points, and runtime creates missing visual children idempotently.
+Setup now includes a `HoldPiecePreviewAnchor` and a more compact top HUD anchor split (`score`, `hold`, `next`). Runtime still creates visual child objects idempotently.
 
 ## Mobile Control Mapping (Pass 2)
 - Tap left half of screen (outside board): move left.
@@ -55,4 +57,5 @@ No additional generated scene objects are required for this pass. Existing setup
 - Tap board / upper area: rotate clockwise.
 - Swipe down: soft drop one row.
 - Strong quick downward swipe: hard drop and lock.
+- Swipe up: hold/swap current piece (once per spawned piece).
 - When game over is shown, any gameplay action restarts the run.

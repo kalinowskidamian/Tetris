@@ -34,6 +34,11 @@ namespace Tetris.Input
                 hold = true;
                 gesture = GestureKind.SwipeDown;
             }
+            else if (UnityInput.GetKeyDown(KeyCode.C) || UnityInput.GetKeyDown(KeyCode.LeftShift))
+            {
+                hold = true;
+                gesture = GestureKind.SwipeUp;
+            }
 
             return new GameplayInputSnapshot(tap, hold, gesture);
         }
