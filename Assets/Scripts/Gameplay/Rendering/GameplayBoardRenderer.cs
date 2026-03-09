@@ -19,11 +19,13 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color lPieceColor = new(1f, 0.65f, 0.25f, 1f);
 
         private readonly List<Image> blocks = new();
+        private Sprite blockSprite;
         private RectTransform rootRect;
 
         private void Awake()
         {
             rootRect = (RectTransform)transform;
+            blockSprite = CreateBlockSprite();
         }
 
         public void Render(BoardModel board, ActivePieceState? activePiece)
@@ -133,9 +135,17 @@ namespace Tetris.Gameplay.Rendering
                 rect.pivot = new Vector2(0.5f, 0.5f);
 
                 var image = block.GetComponent<Image>();
+                image.sprite = blockSprite != null ? blockSprite : CreateBlockSprite();
+                image.type = Image.Type.Simple;
                 image.raycastTarget = false;
                 blocks.Add(image);
             }
+        }
+
+        private static Sprite CreateBlockSprite()
+        {
+            var texture = Texture2D.whiteTexture;
+            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
         }
 
         private Color GetPieceColor(PieceId pieceId)
