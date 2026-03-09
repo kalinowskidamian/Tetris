@@ -4,6 +4,7 @@ using Tetris.Gameplay.Rendering;
 using Tetris.Gameplay.Runtime;
 using Tetris.Input;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Tetris.Gameplay
 {
@@ -12,7 +13,9 @@ namespace Tetris.Gameplay
         [Header("Board")]
         [SerializeField, Min(4)] private int boardWidth = 10;
         [SerializeField, Min(8)] private int boardHeight = 20;
-        [SerializeField, Min(0.02f)] private float gravitySeconds = 0.7f;
+        [SerializeField, Min(0.05f)] private float baseGravitySeconds = 0.72f;
+        [SerializeField, Range(0.75f, 0.98f)] private float gravityLevelMultiplier = 0.92f;
+        [SerializeField, Min(0.05f)] private float minGravitySeconds = 0.09f;
 
         [Header("Scene References")]
         [SerializeField] private BoardLayoutAnchor boardAnchor;
@@ -27,6 +30,7 @@ namespace Tetris.Gameplay
 
         private GameplayRuntime gameplayRuntime;
         private GameplayBoardRenderer boardRenderer;
+        private GameplayHudRenderer hudRenderer;
         private float gravityTimer;
 
         private void Awake()
@@ -43,6 +47,8 @@ namespace Tetris.Gameplay
             var pieces = ClassicTetrominoLibrary.CreateDefinitions();
             var generator = new BagPieceGenerator(pieces);
             gameplayRuntime = new GameplayRuntime(board, generator);
+            gameplayRuntime.LinesClearedFeedbackRequested += HandleLinesCleared;
+            gameplayRuntime.GameOver += HandleGameOver;
 
             boardRenderer = boardAnchor.gameObject.GetComponent<GameplayBoardRenderer>();
             if (boardRenderer == null)
@@ -50,6 +56,11 @@ namespace Tetris.Gameplay
                 boardRenderer = boardAnchor.gameObject.AddComponent<GameplayBoardRenderer>();
             }
 
+            var hudRootRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
+            var scoreRect = scoreInfoAnchor != null ? scoreInfoAnchor.GetComponent<RectTransform>() : null;
+            var previewRect = nextPiecePreviewAnchor != null ? nextPiecePreviewAnchor.GetComponent<RectTransform>() : null;
+            hudRenderer = new GameplayHudRenderer(hudRootRect, scoreRect, previewRect);
+            ApplyBackdropChrome();
             ConfigureInputRouting();
         }
 
@@ -60,14 +71,23 @@ namespace Tetris.Gameplay
                 return;
             }
 
-            gameplayRuntime.Start();
-            Render();
+            StartNewRun();
         }
 
         private void Update()
         {
-            if (gameplayRuntime == null || gameplayRuntime.IsGameOver)
+            if (gameplayRuntime == null)
             {
+                return;
+            }
+
+            if (gameplayRuntime.IsGameOver)
+            {
+                if (inputRouter != null && inputRouter.TryReadSnapshot(out var gameOverSnapshot) && gameOverSnapshot.HasAnyAction)
+                {
+                    StartNewRun();
+                }
+
                 return;
             }
 
@@ -78,6 +98,17 @@ namespace Tetris.Gameplay
             {
                 Render();
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (gameplayRuntime == null)
+            {
+                return;
+            }
+
+            gameplayRuntime.LinesClearedFeedbackRequested -= HandleLinesCleared;
+            gameplayRuntime.GameOver -= HandleGameOver;
         }
 
         private void ResolveAnchors()
@@ -186,7 +217,7 @@ namespace Tetris.Gameplay
         private bool ProcessGravityStep()
         {
             gravityTimer += Time.deltaTime;
-            if (gravityTimer < gravitySeconds)
+            if (gravityTimer < GetGravityIntervalForLevel(gameplayRuntime.Level))
             {
                 return false;
             }
@@ -196,9 +227,64 @@ namespace Tetris.Gameplay
             return true;
         }
 
+        private void StartNewRun()
+        {
+            gravityTimer = 0f;
+            gameplayRuntime.Start();
+            Render();
+        }
+
+        private float GetGravityIntervalForLevel(int level)
+        {
+            var scaled = baseGravitySeconds * Mathf.Pow(gravityLevelMultiplier, Mathf.Max(0, level - 1));
+            return Mathf.Max(minGravitySeconds, scaled);
+        }
+
+        private void HandleLinesCleared(IReadOnlyList<int> rows)
+        {
+            Debug.Log($"Lines cleared: {rows.Count} (total {gameplayRuntime.LinesCleared})");
+        }
+
+        private void HandleGameOver()
+        {
+            Debug.Log("Game over reached. Tap to restart run.");
+        }
+
+        private void ApplyBackdropChrome()
+        {
+            var boardRoot = boardAnchor.GetComponent<RectTransform>().parent as RectTransform;
+            if (boardRoot == null)
+            {
+                return;
+            }
+
+            EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0);
+            EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1);
+        }
+
+        private static void EnsureBackdrop(RectTransform parent, string name, Color color, int siblingIndex)
+        {
+            var existing = parent.Find(name) as RectTransform;
+            if (existing == null)
+            {
+                existing = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                existing.SetParent(parent, false);
+                existing.anchorMin = Vector2.zero;
+                existing.anchorMax = Vector2.one;
+                existing.offsetMin = Vector2.zero;
+                existing.offsetMax = Vector2.zero;
+            }
+
+            existing.SetSiblingIndex(siblingIndex);
+            var image = existing.GetComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+        }
+
         private void Render()
         {
             boardRenderer.Render(gameplayRuntime.Board, gameplayRuntime.ActivePiece);
+            hudRenderer?.Render(gameplayRuntime);
         }
     }
 }

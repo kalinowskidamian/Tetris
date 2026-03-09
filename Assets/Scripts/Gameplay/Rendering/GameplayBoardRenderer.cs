@@ -10,9 +10,11 @@ namespace Tetris.Gameplay.Rendering
     public sealed class GameplayBoardRenderer : MonoBehaviour
     {
         [SerializeField, Range(0f, 0.45f)] private float cellPaddingRatio = 0.08f;
-        [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 8f;
-        [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.07f, 0.14f, 0.82f);
-        [SerializeField] private Color boardFrameColor = new(0.12f, 0.62f, 0.95f, 0.95f);
+        [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 10f;
+        [SerializeField, Range(0f, 28f)] private float boardOuterGlowThickness = 18f;
+        [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
+        [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
+        [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -26,6 +28,7 @@ namespace Tetris.Gameplay.Rendering
         private RectTransform rootRect;
         private Image boardBackground;
         private Image boardFrame;
+        private Image boardOuterGlow;
 
         private void Awake()
         {
@@ -59,6 +62,7 @@ namespace Tetris.Gameplay.Rendering
 
         private void EnsureBoardChrome()
         {
+            boardOuterGlow = EnsureChromeImage("BoardOuterGlow", -3, boardOuterGlowColor);
             boardBackground = EnsureChromeImage("BoardBackground", -2, boardBackgroundColor);
             boardFrame = EnsureChromeImage("BoardFrame", -1, boardFrameColor);
         }
@@ -90,7 +94,9 @@ namespace Tetris.Gameplay.Rendering
         {
             var boardRect = metrics.BoardRect;
             var framePadding = new Vector2(boardFrameThickness, boardFrameThickness);
+            var glowPadding = new Vector2(boardOuterGlowThickness, boardOuterGlowThickness);
 
+            SetRect(boardOuterGlow.rectTransform, boardRect.center, boardRect.size + glowPadding * 2f);
             SetRect(boardBackground.rectTransform, boardRect.center, boardRect.size);
             SetRect(boardFrame.rectTransform, boardRect.center, boardRect.size + framePadding * 2f);
         }
