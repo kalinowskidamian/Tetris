@@ -179,11 +179,20 @@ namespace Tetris.Editor
             GameObject backgroundRoot = new("BackgroundRoot", typeof(RectTransform));
             ConfigureChildLayout(backgroundRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
 
-            GameObject boardRoot = new("BoardRoot", typeof(RectTransform), typeof(BoardLayoutAnchor));
-            ConfigureChildLayout(boardRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.1f, 0.16f), new Vector2(0.9f, 0.78f));
+            GameObject boardRoot = new("BoardRoot", typeof(RectTransform), typeof(BoardLayoutAnchor), typeof(AspectRatioFitter));
+            ConfigureChildLayout(boardRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.16f, 0.12f), new Vector2(0.84f, 0.78f));
+            AspectRatioFitter boardAspect = boardRoot.GetComponent<AspectRatioFitter>();
+            boardAspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            boardAspect.aspectRatio = 0.5f;
 
             GameObject hudRoot = new("HUDRoot", typeof(RectTransform), typeof(HUDLayoutAnchor));
             ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0.78f), new Vector2(1f, 1f));
+
+            GameObject scoreInfoAnchor = new("ScoreInfoAnchor", typeof(RectTransform), typeof(ScoreInfoAnchor));
+            ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.04f, 0.15f), new Vector2(0.62f, 0.9f));
+
+            GameObject nextPieceAnchor = new("NextPiecePreviewAnchor", typeof(RectTransform), typeof(NextPiecePreviewAnchor));
+            ConfigureChildLayout(nextPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.66f, 0.1f), new Vector2(0.96f, 0.9f));
 
             GameObject controlsRoot = new("ControlsRoot", typeof(RectTransform), typeof(ControlsLayoutAnchor));
             ConfigureChildLayout(controlsRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 0.16f));
@@ -191,14 +200,24 @@ namespace Tetris.Editor
             GameObject feedbackRoot = new("FeedbackRoot", typeof(RectTransform), typeof(FeedbackLayoutAnchor), typeof(ScreenFeedbackController));
             ConfigureChildLayout(feedbackRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
 
-            GameObject inputRoot = new("GameplayInputRouter", typeof(GameplayInputRouter));
+            GameObject inputRoot = new("GameplayInputRouter", typeof(GameplayInputRouter), typeof(MobileTouchGameplayInputSource));
             GameObject gameplayRoot = GameObject.Find("GameplayRoot");
             inputRoot.transform.SetParent(gameplayRoot.transform, false);
 
             GameplayRootController gameplayController = gameplayRoot.AddComponent<GameplayRootController>();
             SerializedObject gameplayControllerSerialized = new(gameplayController);
             gameplayControllerSerialized.FindProperty("boardAnchor").objectReferenceValue = boardRoot.GetComponent<BoardLayoutAnchor>();
+            gameplayControllerSerialized.FindProperty("hudAnchor").objectReferenceValue = hudRoot.GetComponent<HUDLayoutAnchor>();
+            gameplayControllerSerialized.FindProperty("nextPiecePreviewAnchor").objectReferenceValue = nextPieceAnchor.GetComponent<NextPiecePreviewAnchor>();
+            gameplayControllerSerialized.FindProperty("scoreInfoAnchor").objectReferenceValue = scoreInfoAnchor.GetComponent<ScoreInfoAnchor>();
+            gameplayControllerSerialized.FindProperty("inputRouter").objectReferenceValue = inputRoot.GetComponent<GameplayInputRouter>();
+            gameplayControllerSerialized.FindProperty("touchInputSource").objectReferenceValue = inputRoot.GetComponent<MobileTouchGameplayInputSource>();
             gameplayControllerSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            SerializedObject touchSerialized = new(inputRoot.GetComponent<MobileTouchGameplayInputSource>());
+            touchSerialized.FindProperty("inputRouter").objectReferenceValue = inputRoot.GetComponent<GameplayInputRouter>();
+            touchSerialized.FindProperty("boardArea").objectReferenceValue = boardRoot.GetComponent<RectTransform>();
+            touchSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureChildLayout(RectTransform child, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax)

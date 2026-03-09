@@ -17,6 +17,8 @@ Attach systems to marker components instead of searching by name:
 - `HUDLayoutAnchor`
 - `ControlsLayoutAnchor`
 - `FeedbackLayoutAnchor`
+- `ScoreInfoAnchor`: lightweight HUD slot for score/lines/level text presenters.
+- `NextPiecePreviewAnchor`: lightweight HUD slot for next-piece preview presenter.
 
 This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 
