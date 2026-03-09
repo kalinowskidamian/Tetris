@@ -45,6 +45,15 @@ namespace Tetris.Gameplay
                 boardRenderer = boardAnchor.gameObject.AddComponent<GameplayBoardRenderer>();
             }
 
+        }
+
+        private void Start()
+        {
+            if (gameplayRuntime == null)
+            {
+                return;
+            }
+
             gameplayRuntime.Start();
             Render();
         }
