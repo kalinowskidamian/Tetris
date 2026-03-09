@@ -10,6 +10,7 @@ namespace Tetris.Gameplay.Rendering
     public sealed class GameplayBoardRenderer : MonoBehaviour
     {
         [SerializeField, Range(0f, 0.45f)] private float cellPaddingRatio = 0.08f;
+        [SerializeField, Range(0f, 3f)] private float visibleTopPaddingRows = 0.9f;
         [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 10f;
         [SerializeField, Range(0f, 28f)] private float boardOuterGlowThickness = 18f;
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
@@ -44,7 +45,7 @@ namespace Tetris.Gameplay.Rendering
                 rootRect = (RectTransform)transform;
             }
 
-            var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio);
+            var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio, visibleTopPaddingRows);
             UpdateBoardChrome(metrics);
 
             var needed = CountBoardCells(board) + CountActiveCells(activePiece);
@@ -242,13 +243,17 @@ namespace Tetris.Gameplay.Rendering
             public Vector2 CellSize { get; }
             public Rect BoardRect { get; }
 
-            public static BoardMetrics Create(Vector2 bounds, int boardWidth, int boardHeight, float paddingRatio)
+            public static BoardMetrics Create(Vector2 bounds, int boardWidth, int boardHeight, float paddingRatio, float topPaddingRows)
             {
-                var step = Mathf.Min(bounds.x / boardWidth, bounds.y / boardHeight);
+                var paddedBoardHeight = boardHeight + Mathf.Max(0f, topPaddingRows);
+                var step = Mathf.Min(bounds.x / boardWidth, bounds.y / paddedBoardHeight);
                 var boardPixelWidth = step * boardWidth;
                 var boardPixelHeight = step * boardHeight;
                 var offsetX = (bounds.x - boardPixelWidth) * 0.5f;
-                var offsetY = (bounds.y - boardPixelHeight) * 0.5f;
+                var extraVertical = Mathf.Max(0f, bounds.y - boardPixelHeight);
+                var requestedTopPadding = step * Mathf.Max(0f, topPaddingRows);
+                var appliedTopPadding = Mathf.Min(extraVertical, requestedTopPadding);
+                var offsetY = (extraVertical - appliedTopPadding) * 0.5f;
                 var padded = Mathf.Max(1f, step * (1f - paddingRatio));
                 var boardRect = new Rect(offsetX, offsetY, boardPixelWidth, boardPixelHeight);
                 return new BoardMetrics(step, new Vector2(padded, padded), offsetX, offsetY, boardRect);

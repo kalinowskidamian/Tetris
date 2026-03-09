@@ -180,22 +180,22 @@ namespace Tetris.Editor
             ConfigureChildLayout(backgroundRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
 
             GameObject boardRoot = new("BoardRoot", typeof(RectTransform), typeof(BoardLayoutAnchor), typeof(AspectRatioFitter));
-            ConfigureChildLayout(boardRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.16f, 0.12f), new Vector2(0.84f, 0.78f));
+            ConfigureChildLayout(boardRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.12f, 0.1f), new Vector2(0.88f, 0.76f));
             AspectRatioFitter boardAspect = boardRoot.GetComponent<AspectRatioFitter>();
             boardAspect.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             boardAspect.aspectRatio = 0.5f;
 
             GameObject hudRoot = new("HUDRoot", typeof(RectTransform), typeof(HUDLayoutAnchor));
-            ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0.78f), new Vector2(1f, 1f));
+            ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.04f, 0.8f), new Vector2(0.96f, 0.975f));
 
             GameObject scoreInfoAnchor = new("ScoreInfoAnchor", typeof(RectTransform), typeof(ScoreInfoAnchor));
-            ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.04f, 0.15f), new Vector2(0.62f, 0.9f));
+            ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.02f, 0.12f), new Vector2(0.62f, 0.92f));
 
             GameObject nextPieceAnchor = new("NextPiecePreviewAnchor", typeof(RectTransform), typeof(NextPiecePreviewAnchor));
-            ConfigureChildLayout(nextPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.66f, 0.1f), new Vector2(0.96f, 0.9f));
+            ConfigureChildLayout(nextPieceAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.66f, 0.12f), new Vector2(0.98f, 0.92f));
 
             GameObject controlsRoot = new("ControlsRoot", typeof(RectTransform), typeof(ControlsLayoutAnchor));
-            ConfigureChildLayout(controlsRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 0.16f));
+            ConfigureChildLayout(controlsRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 0.13f));
 
             GameObject feedbackRoot = new("FeedbackRoot", typeof(RectTransform), typeof(FeedbackLayoutAnchor), typeof(ScreenFeedbackController));
             ConfigureChildLayout(feedbackRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
