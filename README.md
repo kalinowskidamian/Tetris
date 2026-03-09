@@ -26,6 +26,7 @@ Script domains under `Assets/Scripts/`:
 - `Core`
 - `Bootstrap`
 - `Gameplay`
+- `Input`
 - `UI`
 - `Audio`
 - `VFX`
@@ -48,7 +49,7 @@ What this menu action ensures:
 ## Scene Purpose
 - **Bootstrap**: startup entry scene with only essential boot logic (`AppBootstrap`)
 - **MainMenu**: menu-oriented scene root with scalable mobile canvas and safe-area structure
-- **Gameplay**: gameplay-oriented scene root with board, layered UI containers, and future feedback hooks
+- **Gameplay**: portrait-first gameplay scene with explicit roots for background, board, HUD, controls, and feedback
 
 ## Foundation Systems Included
 - `AppBootstrap` startup flow
@@ -56,10 +57,12 @@ What this menu action ensures:
 - reusable mobile `SafeAreaFitter`
 - canvas scaling binder driven by theme config
 - minimal VFX feedback architecture (`VFXFeedbackConfig`, `ScreenFeedbackController`)
+- gameplay input foundation (`GameplayInputRouter`, `IGameplayInputSource`, gesture snapshot types)
 
 ## Documentation
 - [Visual Direction](Docs/VisualDirection.md)
 - [Scene Architecture](Docs/SceneArchitecture.md)
+- [Portrait Gameplay Layout](Docs/PortraitGameplayLayout.md)
 - [Setup Workflow](Docs/SetupWorkflow.md)
 - [Game Vision](Docs/GameVision.md)
 - [Architecture](Docs/Architecture.md)

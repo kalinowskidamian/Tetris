@@ -1,3 +1,4 @@
+using Tetris.Core;
 using UnityEngine;
 
 namespace Tetris.UI
@@ -6,7 +7,9 @@ namespace Tetris.UI
     public sealed class SafeAreaFitter : MonoBehaviour
     {
         [SerializeField] private bool applyOnAwake = true;
-        [SerializeField] private Vector2 padding = new(12f, 12f);
+        private const string RegistryResourcePath = "Configs/ProjectConfigRegistry";
+
+        [SerializeField] private UIThemeConfig uiThemeConfig;
 
         private RectTransform rectTransform;
         private Rect lastSafeArea;
@@ -15,6 +18,8 @@ namespace Tetris.UI
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
+
+            ResolveThemeConfig();
 
             if (applyOnAwake)
             {
@@ -30,8 +35,21 @@ namespace Tetris.UI
             }
         }
 
+        private void ResolveThemeConfig()
+        {
+            if (uiThemeConfig != null)
+            {
+                return;
+            }
+
+            ProjectConfigRegistry registry = Resources.Load<ProjectConfigRegistry>(RegistryResourcePath);
+            uiThemeConfig = registry != null ? registry.UIThemeConfig : null;
+        }
+
         public void ApplySafeArea()
         {
+            ResolveThemeConfig();
+
             if (rectTransform == null)
             {
                 rectTransform = GetComponent<RectTransform>();
@@ -41,13 +59,23 @@ namespace Tetris.UI
             lastSafeArea = safeArea;
             lastScreenSize = new Vector2Int(Screen.width, Screen.height);
 
+            if (uiThemeConfig != null && !uiThemeConfig.EnforceSafeArea)
+            {
+                rectTransform.anchorMin = Vector2.zero;
+                rectTransform.anchorMax = Vector2.one;
+                rectTransform.offsetMin = Vector2.zero;
+                rectTransform.offsetMax = Vector2.zero;
+                return;
+            }
+
+            float safeAreaPadding = uiThemeConfig != null ? uiThemeConfig.SafeAreaPadding : 0f;
             Vector2 minAnchor = safeArea.position;
             Vector2 maxAnchor = safeArea.position + safeArea.size;
 
-            minAnchor.x = (minAnchor.x + padding.x) / Screen.width;
-            minAnchor.y = (minAnchor.y + padding.y) / Screen.height;
-            maxAnchor.x = (maxAnchor.x - padding.x) / Screen.width;
-            maxAnchor.y = (maxAnchor.y - padding.y) / Screen.height;
+            minAnchor.x = (minAnchor.x + safeAreaPadding) / Screen.width;
+            minAnchor.y = (minAnchor.y + safeAreaPadding) / Screen.height;
+            maxAnchor.x = (maxAnchor.x - safeAreaPadding) / Screen.width;
+            maxAnchor.y = (maxAnchor.y - safeAreaPadding) / Screen.height;
 
             rectTransform.anchorMin = minAnchor;
             rectTransform.anchorMax = maxAnchor;

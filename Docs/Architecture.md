@@ -1,63 +1,51 @@
 # Architecture
 
-## Proposed Folder Structure
+## Repository-Aligned Folder Structure
 
 ```text
 Assets/
-  _Project/
-    Art/
+  Art/
+  Audio/
+  Editor/
+  Materials/
+  Prefabs/
+  Resources/
+    Configs/
+  Scenes/
+  Scripts/
     Audio/
+    Bootstrap/
+    Core/
     Data/
-    Prefabs/
-    Scenes/
-    Scripts/
-      Core/
-      Gameplay/
-      UI/
-      Effects/
-      Progression/
-      Platform/
-      Services/
+    Gameplay/
+    Input/
     UI/
+    Utils/
     VFX/
+  Settings/
+  UI/
+  VFX/
 Packages/
 ProjectSettings/
 Docs/
 ```
 
 Principles:
-- Keep project-owned content under `Assets/_Project`.
-- Separate gameplay rules, presentation, and platform/services code.
-- Prefer ScriptableObject/data-driven configuration for balance and tuning.
+- Keep production content organized by domain under `Assets/` (no `_Project` indirection in this repo).
+- Keep startup, configuration, UI, VFX, and gameplay foundations decoupled.
+- Prefer ScriptableObject-driven configuration for runtime tuning and mobile iteration.
 
-## Gameplay Systems (Planned)
-- Board/grid simulation with deterministic rules.
-- Piece generation/spawn policy and rotation/lock rules.
-- Input abstraction for touch gestures and optional external devices.
-- Scoring, combo, speed progression, and fail-state handling.
-- Game state orchestration (menu, run, pause, game over).
+## Config-Driven Foundation
+- `ProjectConfigRegistry` is the central reference for `GameConfig`, `VisualThemeConfig`, `UIThemeConfig`, and `VFXFeedbackConfig`.
+- Startup and runtime helpers resolve config from the registry when local references are absent.
+- Initial setup tooling owns baseline config asset creation and assignment.
 
-## UI System
-- Layered UI architecture (HUD, overlays, menus, meta screens).
-- Event-driven view updates from gameplay/domain state.
-- Reusable UI components with centralized style/theme tokens.
-- Localization-ready text and formatting paths.
+## Scene Architecture Baseline
+- `Bootstrap`: entry-only startup scene.
+- `MainMenu`: safe-area-aware menu scene.
+- `Gameplay`: portrait-first layout scene with dedicated roots for board, HUD, controls, and feedback.
 
-## Effects / Juice System
-- Centralized feedback triggers (line clear, hard drop, level-up, streak).
-- Coordinated animation, VFX, SFX, camera shake, and haptics.
-- Intensity profiles for accessibility/performance tiers.
-- Pooling/performance-conscious implementation for mobile hardware.
-
-## Save / Progression Foundation
-- Versioned save schema for profile, settings, progression, and stats.
-- Explicit separation between run-state and persistent profile data.
-- Data integrity checks and safe migration path for updates.
-- Analytics-ready event boundaries (without hard vendor lock-in).
-
-## Android / Play Store Readiness
-- Target Android performance budgets from day one (CPU/GPU/memory).
-- Build configuration separation: development, staging, production.
-- Compliance-conscious architecture for privacy, consent, and identifiers.
-- Prepare integration seams for Play Services, IAP, ads, and remote config.
-- Crash/telemetry hooks and release pipeline readiness.
+## Mobile Input Foundation (Planned Behavior)
+- Input is routed through a dedicated gameplay input service layer (`GameplayInputRouter` + `IGameplayInputSource`).
+- Gesture vocabulary is prepared for tap / swipe / hold without binding final gameplay behavior yet.
+- Gameplay systems should consume input snapshots, not raw touch APIs directly.
