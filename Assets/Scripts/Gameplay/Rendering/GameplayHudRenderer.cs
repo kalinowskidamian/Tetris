@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Tetris.Gameplay.Domain;
 using Tetris.Gameplay.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,22 +11,25 @@ namespace Tetris.Gameplay.Rendering
         private readonly RectTransform hudRoot;
         private readonly RectTransform scoreAnchor;
         private readonly RectTransform nextPreviewAnchor;
+        private readonly RectTransform holdPreviewAnchor;
 
         private readonly Font defaultFont;
-        private readonly List<Image> previewCells = new();
+        private readonly List<Image> nextPreviewCells = new();
+        private readonly List<Image> holdPreviewCells = new();
 
         private Text scoreValueText;
         private Text linesValueText;
         private Text levelValueText;
         private Text gameOverText;
-        private RectTransform previewPanel;
-        private RectTransform previewContentArea;
+        private RectTransform nextPreviewContentArea;
+        private RectTransform holdPreviewContentArea;
 
-        public GameplayHudRenderer(RectTransform hudRoot, RectTransform scoreAnchor, RectTransform nextPreviewAnchor)
+        public GameplayHudRenderer(RectTransform hudRoot, RectTransform scoreAnchor, RectTransform nextPreviewAnchor, RectTransform holdPreviewAnchor)
         {
             this.hudRoot = hudRoot;
             this.scoreAnchor = scoreAnchor;
             this.nextPreviewAnchor = nextPreviewAnchor;
+            this.holdPreviewAnchor = holdPreviewAnchor;
             defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }
 
@@ -33,7 +37,8 @@ namespace Tetris.Gameplay.Rendering
         {
             EnsureHudBackdrop();
             EnsureScorePanel();
-            EnsurePreviewPanel();
+            nextPreviewContentArea = EnsurePreviewPanel(nextPreviewAnchor, "NextPanel", "NEXT");
+            holdPreviewContentArea = EnsurePreviewPanel(holdPreviewAnchor, "HoldPanel", "HOLD");
             EnsureGameOverText();
         }
 
@@ -66,7 +71,8 @@ namespace Tetris.Gameplay.Rendering
                 gameOverText.gameObject.SetActive(runtime.IsGameOver);
             }
 
-            RenderNextPreview(runtime);
+            RenderPreview(runtime.NextPiece, nextPreviewContentArea, nextPreviewCells);
+            RenderPreview(runtime.HeldPiece, holdPreviewContentArea, holdPreviewCells);
         }
 
         private void EnsureHudBackdrop()
@@ -88,27 +94,25 @@ namespace Tetris.Gameplay.Rendering
             }
 
             EnsurePanelImage(scoreAnchor, "ScorePanel", new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.06f, 0.56f), new Vector2(0.94f, 0.91f), 28, TextAnchor.MiddleLeft);
-            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.06f, 0.28f), new Vector2(0.94f, 0.54f), 21, TextAnchor.MiddleLeft);
-            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.06f, 0.04f), new Vector2(0.94f, 0.27f), 21, TextAnchor.MiddleLeft);
+            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.06f, 0.56f), new Vector2(0.94f, 0.91f), 24, TextAnchor.MiddleLeft);
+            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.06f, 0.28f), new Vector2(0.94f, 0.54f), 18, TextAnchor.MiddleLeft);
+            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.06f, 0.04f), new Vector2(0.94f, 0.27f), 18, TextAnchor.MiddleLeft);
 
             scoreValueText.text = "Score 0";
             linesValueText.text = "Lines 0";
             levelValueText.text = "Level 1";
         }
 
-        private void EnsurePreviewPanel()
+        private RectTransform EnsurePreviewPanel(RectTransform anchor, string panelName, string title)
         {
-            if (nextPreviewAnchor == null)
+            if (anchor == null)
             {
-                return;
+                return null;
             }
 
-            previewPanel = nextPreviewAnchor;
-            EnsurePanelImage(previewPanel, "NextPanel", new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            EnsureLabel(previewPanel, "NextTitle", new Vector2(0.12f, 0.73f), new Vector2(0.88f, 0.95f), 18, TextAnchor.MiddleCenter).text = "NEXT";
-            previewContentArea = EnsurePreviewContentArea(previewPanel);
-            EnsurePreviewPool(4);
+            EnsurePanelImage(anchor, panelName, new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
+            EnsureLabel(anchor, $"{title}Title", new Vector2(0.12f, 0.73f), new Vector2(0.88f, 0.95f), 15, TextAnchor.MiddleCenter).text = title;
+            return EnsurePreviewContentArea(anchor, $"{title}PreviewContentArea");
         }
 
         private void EnsureGameOverText()
@@ -124,15 +128,25 @@ namespace Tetris.Gameplay.Rendering
             gameOverText.gameObject.SetActive(false);
         }
 
-        private void RenderNextPreview(GameplayRuntime runtime)
+        private void RenderPreview(PieceDefinition piece, RectTransform contentArea, List<Image> cellPool)
         {
-            if (previewPanel == null || previewContentArea == null)
+            if (contentArea == null)
             {
                 return;
             }
 
-            var shape = runtime.NextPiece.GetRotationState(runtime.NextPiece.SpawnRotationIndex);
-            EnsurePreviewPool(shape.Length);
+            for (var i = 0; i < cellPool.Count; i++)
+            {
+                cellPool[i].gameObject.SetActive(false);
+            }
+
+            if (piece == null)
+            {
+                return;
+            }
+
+            var shape = piece.GetRotationState(piece.SpawnRotationIndex);
+            EnsurePreviewPool(cellPool, contentArea, shape.Length);
 
             var minX = int.MaxValue;
             var maxX = int.MinValue;
@@ -150,53 +164,48 @@ namespace Tetris.Gameplay.Rendering
 
             var width = maxX - minX + 1;
             var height = maxY - minY + 1;
-            var gridSize = Mathf.Min(previewContentArea.rect.width, previewContentArea.rect.height) * 0.82f;
+            var gridSize = Mathf.Min(contentArea.rect.width, contentArea.rect.height) * 0.82f;
             var step = gridSize / Mathf.Max(width, height);
             var startX = -((width - 1) * step) * 0.5f;
             var startY = ((height - 1) * step) * 0.5f;
 
-            for (var i = 0; i < previewCells.Count; i++)
-            {
-                previewCells[i].gameObject.SetActive(false);
-            }
-
             for (var i = 0; i < shape.Length; i++)
             {
                 var cell = shape[i];
-                var image = previewCells[i];
+                var image = cellPool[i];
                 image.gameObject.SetActive(true);
-                image.color = runtime.NextPiece.TokenColor;
+                image.color = piece.TokenColor;
 
                 var rect = (RectTransform)image.transform;
-                rect.sizeDelta = new Vector2(step * 0.84f, step * 0.84f);
+                rect.sizeDelta = new Vector2(step * 0.82f, step * 0.82f);
                 rect.anchoredPosition = new Vector2(
                     startX + (cell.X - minX) * step,
                     startY - (cell.Y - minY) * step);
             }
         }
 
-        private void EnsurePreviewPool(int count)
+        private static void EnsurePreviewPool(List<Image> cellPool, RectTransform parent, int count)
         {
-            while (previewCells.Count < count)
+            while (cellPool.Count < count)
             {
-                var cell = new GameObject($"PreviewCell_{previewCells.Count}", typeof(RectTransform), typeof(Image));
-                cell.transform.SetParent(previewContentArea, false);
+                var cell = new GameObject($"PreviewCell_{cellPool.Count}", typeof(RectTransform), typeof(Image));
+                cell.transform.SetParent(parent, false);
                 var image = cell.GetComponent<Image>();
                 image.raycastTarget = false;
                 var rect = (RectTransform)cell.transform;
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
-                previewCells.Add(image);
+                cellPool.Add(image);
             }
         }
 
-        private static RectTransform EnsurePreviewContentArea(RectTransform parent)
+        private static RectTransform EnsurePreviewContentArea(RectTransform parent, string areaName)
         {
-            var area = parent.Find("PreviewContentArea") as RectTransform;
+            var area = parent.Find(areaName) as RectTransform;
             if (area == null)
             {
-                area = new GameObject("PreviewContentArea", typeof(RectTransform)).GetComponent<RectTransform>();
+                area = new GameObject(areaName, typeof(RectTransform)).GetComponent<RectTransform>();
                 area.SetParent(parent, false);
             }
 

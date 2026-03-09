@@ -11,6 +11,7 @@ namespace Tetris.Input
         [SerializeField, Range(0f, 1f)] private float rotateTapMinY = 0.58f;
         [SerializeField, Min(32f)] private float hardDropMinSwipePixels = 220f;
         [SerializeField, Min(0.1f)] private float hardDropMaxDuration = 0.4f;
+        [SerializeField, Min(48f)] private float holdMinSwipePixels = 120f;
 
         private bool hasActiveTouch;
         private int activeFingerId;
@@ -76,6 +77,11 @@ namespace Tetris.Input
             {
                 var hardDrop = absY >= hardDropMinSwipePixels && duration <= hardDropMaxDuration;
                 return new GameplayInputSnapshot(false, hardDrop, GestureKind.SwipeDown);
+            }
+
+            if (absY >= holdMinSwipePixels && absY > absX && delta.y > 0f)
+            {
+                return new GameplayInputSnapshot(false, true, GestureKind.SwipeUp);
             }
 
             var tapMaxDuration = inputRouter != null ? inputRouter.TapMaxDuration : 0.2f;
