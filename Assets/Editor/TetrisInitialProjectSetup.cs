@@ -192,7 +192,13 @@ namespace Tetris.Editor
             ConfigureChildLayout(feedbackRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0f, 0f), new Vector2(1f, 1f));
 
             GameObject inputRoot = new("GameplayInputRouter", typeof(GameplayInputRouter));
-            inputRoot.transform.SetParent(GameObject.Find("GameplayRoot").transform, false);
+            GameObject gameplayRoot = GameObject.Find("GameplayRoot");
+            inputRoot.transform.SetParent(gameplayRoot.transform, false);
+
+            GameplayRootController gameplayController = gameplayRoot.AddComponent<GameplayRootController>();
+            SerializedObject gameplayControllerSerialized = new(gameplayController);
+            gameplayControllerSerialized.FindProperty("boardAnchor").objectReferenceValue = boardRoot.GetComponent<BoardLayoutAnchor>();
+            gameplayControllerSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureChildLayout(RectTransform child, RectTransform parent, Vector2 anchorMin, Vector2 anchorMax)
