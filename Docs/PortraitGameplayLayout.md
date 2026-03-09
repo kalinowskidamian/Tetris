@@ -28,3 +28,9 @@ This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 - Touch controls and gesture surfaces should mount under `ControlsLayoutAnchor`.
 - VFX/UI feedback overlays should render under `FeedbackLayoutAnchor`.
 - Keep all gameplay feature entry points scene-agnostic by resolving these anchors at runtime.
+
+## Current Portrait Proportion Targets
+- HUD is intentionally compact so the board remains the dominant visual zone.
+- `BoardRoot` and `HUDRoot` anchors are tuned together to keep clear separation between active gameplay and top panels.
+- Next-piece preview is rendered inside a dedicated content area within `NextPiecePreviewAnchor` so pieces stay centered and fully contained.
+- Layout updates are generated through `Tools/Tetris/Apply Initial Project Setup`; rerun setup after pulling layout changes.
