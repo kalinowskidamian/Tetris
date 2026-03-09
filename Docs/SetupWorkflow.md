@@ -23,3 +23,6 @@ The setup action is designed to be safe to run repeatedly:
   2. `MainMenu`
   3. `Gameplay`
 - Assign Android player settings, app icon, and package ID per release plan.
+
+## Current PR Note
+- Yes, rerun `Tools/Tetris/Apply Initial Project Setup` after pulling this change to regenerate the updated Gameplay scene hierarchy (board aspect framing, mobile input source wiring, and HUD anchor slots).

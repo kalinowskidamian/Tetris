@@ -41,12 +41,13 @@ Script domains under `Assets/Scripts/`:
 - Isolated 7-bag randomizer (`BagPieceGenerator`).
 - Unity gameplay integration via `GameplayRootController` + `GameplayBoardRenderer` attached to `BoardLayoutAnchor`.
 
-Editor controls in `Gameplay` scene for inspection:
-- Left/Right arrows: move
-- Down arrow: soft step
-- Up/X: rotate clockwise
-- Z: rotate counter-clockwise
-- Space: hard drop
+Mobile gameplay controls (portrait pass 1):
+- tap left / right side for movement
+- tap board/upper area to rotate
+- swipe down for soft drop
+- strong quick downward swipe for hard drop
+
+Editor/debug keyboard controls are available only in `UNITY_EDITOR` or `DEVELOPMENT_BUILD` builds for inspection.
 
 ## Initial Setup Tool
 Use the menu command below to create/update all foundational assets in an idempotent way:
@@ -54,6 +55,9 @@ Use the menu command below to create/update all foundational assets in an idempo
 - **`Tools/Tetris/Apply Initial Project Setup`**
 
 What this menu action ensures:
+
+> If gameplay scene structure or generated anchors change in a PR, rerun this setup action to regenerate `Gameplay` scene content.
+
 - required folder structure exists
 - config assets exist in `Assets/Resources/Configs`
 - foundational scenes are generated/updated:

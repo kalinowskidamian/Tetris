@@ -45,7 +45,8 @@ Classic 7 tetromino definitions are provided by `ClassicTetrominoLibrary`.
 - builds board + runtime on `Awake`
 - creates/uses `GameplayBoardRenderer` on `BoardLayoutAnchor`
 - applies gravity tick in `Update`
-- uses keyboard controls for editor inspection
+- routes input through `GameplayInputRouter` with mobile touch source
+- keeps optional keyboard controls only for editor/development debugging
 
 `GameplayBoardRenderer` draws board + active piece using generated square sprites.
 
@@ -58,7 +59,16 @@ Implemented now:
 - minimal runtime rendering in gameplay scene
 
 Not implemented yet:
-- scoring, level progression, hold, ghost piece, preview UI
+- scoring, level progression, hold, ghost piece, finalized preview UI
 - wall kick systems (SRS)
-- touch gesture gameplay binding
 - final art, VFX polish, audio, or meta systems
+
+## Mobile Control Mapping (Pass 1)
+- Tap left half of screen (outside board): move left.
+- Tap right half of screen (outside board): move right.
+- Tap board / upper area: rotate clockwise.
+- Swipe down: soft drop one row.
+- Strong quick downward swipe: hard drop and lock.
+
+## Debug Controls
+- Keyboard control path is wired only in `UNITY_EDITOR` or `DEVELOPMENT_BUILD` for inspection.

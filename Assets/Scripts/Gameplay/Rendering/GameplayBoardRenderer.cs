@@ -10,6 +10,9 @@ namespace Tetris.Gameplay.Rendering
     public sealed class GameplayBoardRenderer : MonoBehaviour
     {
         [SerializeField, Range(0f, 0.45f)] private float cellPaddingRatio = 0.08f;
+        [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 8f;
+        [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.07f, 0.14f, 0.82f);
+        [SerializeField] private Color boardFrameColor = new(0.12f, 0.62f, 0.95f, 0.95f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -21,11 +24,14 @@ namespace Tetris.Gameplay.Rendering
         private readonly List<Image> blocks = new();
         private Sprite blockSprite;
         private RectTransform rootRect;
+        private Image boardBackground;
+        private Image boardFrame;
 
         private void Awake()
         {
             rootRect = (RectTransform)transform;
             blockSprite = CreateBlockSprite();
+            EnsureBoardChrome();
         }
 
         public void Render(BoardModel board, ActivePieceState? activePiece)
@@ -35,10 +41,12 @@ namespace Tetris.Gameplay.Rendering
                 rootRect = (RectTransform)transform;
             }
 
+            var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio);
+            UpdateBoardChrome(metrics);
+
             var needed = CountBoardCells(board) + CountActiveCells(activePiece);
             EnsurePool(needed);
 
-            var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio);
             var index = 0;
             index = RenderBoard(board, index, metrics);
             index = RenderActive(activePiece, index, metrics);
@@ -47,6 +55,53 @@ namespace Tetris.Gameplay.Rendering
             {
                 blocks[i].gameObject.SetActive(false);
             }
+        }
+
+        private void EnsureBoardChrome()
+        {
+            boardBackground = EnsureChromeImage("BoardBackground", -2, boardBackgroundColor);
+            boardFrame = EnsureChromeImage("BoardFrame", -1, boardFrameColor);
+        }
+
+        private Image EnsureChromeImage(string name, int siblingIndex, Color color)
+        {
+            var existing = transform.Find(name);
+            Image image;
+            if (existing == null)
+            {
+                var child = new GameObject(name, typeof(RectTransform), typeof(Image));
+                child.transform.SetParent(transform, false);
+                image = child.GetComponent<Image>();
+            }
+            else
+            {
+                image = existing.GetComponent<Image>();
+            }
+
+            image.raycastTarget = false;
+            image.sprite = blockSprite != null ? blockSprite : CreateBlockSprite();
+            image.type = Image.Type.Sliced;
+            image.color = color;
+            image.transform.SetSiblingIndex(Mathf.Max(0, siblingIndex + 2));
+            return image;
+        }
+
+        private void UpdateBoardChrome(BoardMetrics metrics)
+        {
+            var boardRect = metrics.BoardRect;
+            var framePadding = new Vector2(boardFrameThickness, boardFrameThickness);
+
+            SetRect(boardBackground.rectTransform, boardRect.center, boardRect.size);
+            SetRect(boardFrame.rectTransform, boardRect.center, boardRect.size + framePadding * 2f);
+        }
+
+        private static void SetRect(RectTransform rect, Vector2 center, Vector2 size)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = center;
+            rect.sizeDelta = size;
         }
 
         private int RenderBoard(BoardModel board, int index, BoardMetrics metrics)
@@ -169,15 +224,17 @@ namespace Tetris.Gameplay.Rendering
             private readonly float startX;
             private readonly float startY;
 
-            public BoardMetrics(float cellStep, Vector2 cellSize, float startX, float startY)
+            public BoardMetrics(float cellStep, Vector2 cellSize, float startX, float startY, Rect boardRect)
             {
                 this.cellStep = cellStep;
                 CellSize = cellSize;
                 this.startX = startX;
                 this.startY = startY;
+                BoardRect = boardRect;
             }
 
             public Vector2 CellSize { get; }
+            public Rect BoardRect { get; }
 
             public static BoardMetrics Create(Vector2 bounds, int boardWidth, int boardHeight, float paddingRatio)
             {
@@ -187,7 +244,8 @@ namespace Tetris.Gameplay.Rendering
                 var offsetX = (bounds.x - boardPixelWidth) * 0.5f;
                 var offsetY = (bounds.y - boardPixelHeight) * 0.5f;
                 var padded = Mathf.Max(1f, step * (1f - paddingRatio));
-                return new BoardMetrics(step, new Vector2(padded, padded), offsetX, offsetY);
+                var boardRect = new Rect(offsetX, offsetY, boardPixelWidth, boardPixelHeight);
+                return new BoardMetrics(step, new Vector2(padded, padded), offsetX, offsetY, boardRect);
             }
 
             public Vector2 GetCellPosition(int x, int y)
