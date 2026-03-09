@@ -37,9 +37,10 @@ Script domains under `Assets/Scripts/`:
 ## Gameplay Foundation (Current)
 - Board domain model (`BoardModel`) with bounds checks, occupancy, fit validation, locking, and line clears.
 - Data-driven tetromino definitions (`PieceDefinition`) with classic 7-piece library and rotation states.
-- Runtime service (`GameplayRuntime`) for spawn, move, rotate, step-down lock, hard drop, and next piece flow.
+- Runtime service (`GameplayRuntime`) for spawn, move, rotate, step-down lock, hard drop, next-piece flow, and game-over detection.
+- Core progression values now included in runtime: score, cleared lines, level, and line-clear feedback hooks.
 - Isolated 7-bag randomizer (`BagPieceGenerator`).
-- Unity gameplay integration via `GameplayRootController` + `GameplayBoardRenderer` attached to `BoardLayoutAnchor`.
+- Unity gameplay integration via `GameplayRootController` + `GameplayBoardRenderer` with HUD/preview rendering on gameplay anchors.
 
 Mobile gameplay controls (portrait pass 1):
 - tap left / right side for movement
@@ -49,6 +50,18 @@ Mobile gameplay controls (portrait pass 1):
 
 Editor/debug keyboard controls are available only in `UNITY_EDITOR` or `DEVELOPMENT_BUILD` builds for inspection.
 
+
+## Gameplay Progression Rules (Pass 2)
+- **Scoring:** line clears use classic readable values (single=100, double=300, triple=500, four=800) multiplied by current level.
+- **Lines:** total cleared lines accumulate for the run.
+- **Level:** `1 + (totalLines / 10)`.
+- **Gravity scaling:** gravity starts from a base interval and scales down each level with a clamp to a minimum interval for readability and fairness on mobile.
+
+## Preview + Run Loop
+- **Next piece preview:** HUD now renders a simple code-driven mini-grid preview in portrait layout from `NextPiecePreviewAnchor`.
+- **Game over and restart:** if a piece cannot spawn, a game-over message is shown; any new gameplay input restarts a fresh run immediately.
+- **Line clear feedback hook:** runtime exposes an event when one or more lines are cleared so VFX/UI feedback can be connected cleanly in later passes.
+
 ## Initial Setup Tool
 Use the menu command below to create/update all foundational assets in an idempotent way:
 
@@ -56,7 +69,7 @@ Use the menu command below to create/update all foundational assets in an idempo
 
 What this menu action ensures:
 
-> If gameplay scene structure or generated anchors change in a PR, rerun this setup action to regenerate `Gameplay` scene content.
+> For this PR, rerunning setup is **not required** because new HUD/visual elements are created idempotently at runtime on existing generated anchors.
 
 - required folder structure exists
 - config assets exist in `Assets/Resources/Configs`

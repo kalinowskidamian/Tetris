@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Tetris.Gameplay.Domain;
 
@@ -18,10 +19,19 @@ namespace Tetris.Gameplay.Runtime
         public ActivePieceState? ActivePiece { get; private set; }
         public PieceDefinition NextPiece { get; private set; }
         public bool IsGameOver { get; private set; }
+        public int Score { get; private set; }
+        public int LinesCleared { get; private set; }
+        public int Level { get; private set; } = 1;
+
+        public event Action<IReadOnlyList<int>> LinesClearedFeedbackRequested;
+        public event Action GameOver;
 
         public void Start()
         {
             IsGameOver = false;
+            Score = 0;
+            LinesCleared = 0;
+            Level = 1;
             NextPiece = generator.NextPiece();
             SpawnFromNext();
         }
@@ -82,7 +92,7 @@ namespace Tetris.Gameplay.Runtime
         {
             if (!ActivePiece.HasValue)
             {
-                return System.Array.Empty<int>();
+                return Array.Empty<int>();
             }
 
             var distance = HardDropDistance();
@@ -98,12 +108,12 @@ namespace Tetris.Gameplay.Runtime
         {
             if (!ActivePiece.HasValue)
             {
-                return System.Array.Empty<int>();
+                return Array.Empty<int>();
             }
 
             if (TryMove(0, -1))
             {
-                return System.Array.Empty<int>();
+                return Array.Empty<int>();
             }
 
             return LockActivePiece();
@@ -114,8 +124,35 @@ namespace Tetris.Gameplay.Runtime
             var active = ActivePiece.Value;
             board.Lock(active.Definition, active.Origin, active.RotationIndex);
             var cleared = board.ClearFullLines();
+            ApplyProgression(cleared.Count);
+
+            if (cleared.Count > 0)
+            {
+                LinesClearedFeedbackRequested?.Invoke(cleared);
+            }
+
             SpawnFromNext();
             return cleared;
+        }
+
+        private void ApplyProgression(int clearedCount)
+        {
+            if (clearedCount <= 0)
+            {
+                return;
+            }
+
+            var scoreByLineCount = clearedCount switch
+            {
+                1 => 100,
+                2 => 300,
+                3 => 500,
+                _ => 800
+            };
+
+            Score += scoreByLineCount * Level;
+            LinesCleared += clearedCount;
+            Level = 1 + (LinesCleared / 10);
         }
 
         private bool CanMoveDown(int offset)
@@ -136,6 +173,7 @@ namespace Tetris.Gameplay.Runtime
             {
                 ActivePiece = null;
                 IsGameOver = true;
+                GameOver?.Invoke();
                 return;
             }
 
