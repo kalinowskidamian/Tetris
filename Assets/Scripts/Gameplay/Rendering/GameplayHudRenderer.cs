@@ -128,9 +128,9 @@ namespace Tetris.Gameplay.Rendering
             }
 
             EnsurePanelImage(scoreAnchor, "ScorePanel", new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.06f, 0.56f), new Vector2(0.94f, 0.91f), 24, TextAnchor.MiddleLeft);
-            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.06f, 0.28f), new Vector2(0.94f, 0.54f), 18, TextAnchor.MiddleLeft);
-            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.06f, 0.04f), new Vector2(0.94f, 0.27f), 18, TextAnchor.MiddleLeft);
+            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.05f, 0.58f), new Vector2(0.95f, 0.90f), 17, TextAnchor.MiddleLeft);
+            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.05f, 0.31f), new Vector2(0.95f, 0.57f), 14, TextAnchor.MiddleLeft);
+            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.05f, 0.06f), new Vector2(0.95f, 0.30f), 14, TextAnchor.MiddleLeft);
 
             scoreValueText.text = "Score 0";
             linesValueText.text = "Lines 0";
@@ -145,7 +145,7 @@ namespace Tetris.Gameplay.Rendering
             }
 
             EnsurePanelImage(anchor, panelName, new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            EnsureLabel(anchor, $"{title}Title", new Vector2(0.12f, 0.73f), new Vector2(0.88f, 0.95f), 15, TextAnchor.MiddleCenter).text = title;
+            EnsureLabel(anchor, $"{title}Title", new Vector2(0.08f, 0.72f), new Vector2(0.92f, 0.95f), 12, TextAnchor.MiddleCenter).text = title;
             return EnsurePreviewContentArea(anchor, $"{title}PreviewContentArea");
         }
 
@@ -225,7 +225,7 @@ namespace Tetris.Gameplay.Rendering
                 return;
             }
 
-            var button = EnsureButton(hudRoot, "PauseButton", "II", new Vector2(0.89f, 0.08f), new Vector2(0.97f, 0.26f), pauseRequested);
+            var button = EnsureButton(hudRoot, "PauseButton", "II", new Vector2(0.915f, 0.13f), new Vector2(0.985f, 0.52f), pauseRequested);
             var buttonImage = button.GetComponent<Image>();
             buttonImage.color = new Color(0.09f, 0.17f, 0.3f, 0.88f);
         }
@@ -265,7 +265,7 @@ namespace Tetris.Gameplay.Rendering
 
             var image = rect.GetComponent<Image>();
             image.color = new Color(0.08f, 0.12f, 0.22f, 0.92f);
-            var text = EnsureLabel(rect, $"{name}Label", new Vector2(0.06f, 0.1f), new Vector2(0.94f, 0.9f), 20, TextAnchor.MiddleCenter);
+            var text = EnsureLabel(rect, $"{name}Label", new Vector2(0.06f, 0.1f), new Vector2(0.94f, 0.9f), 16, TextAnchor.MiddleCenter);
             text.text = label;
             return button;
         }
@@ -311,8 +311,8 @@ namespace Tetris.Gameplay.Rendering
                 area.SetParent(parent, false);
             }
 
-            area.anchorMin = new Vector2(0.1f, 0.08f);
-            area.anchorMax = new Vector2(0.9f, 0.7f);
+            area.anchorMin = new Vector2(0.08f, 0.07f);
+            area.anchorMax = new Vector2(0.92f, 0.68f);
             area.offsetMin = Vector2.zero;
             area.offsetMax = Vector2.zero;
             area.pivot = new Vector2(0.5f, 0.5f);

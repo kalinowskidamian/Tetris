@@ -34,3 +34,11 @@ This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 - `BoardRoot` and `HUDRoot` anchors are tuned together to keep clear separation between active gameplay and top panels.
 - Next-piece preview is rendered inside a dedicated content area within `NextPiecePreviewAnchor` so pieces stay centered and fully contained.
 - Layout updates are generated through `Tools/Tetris/Apply Initial Project Setup`; rerun setup after pulling layout changes.
+
+
+## Gameplay Presentation Updates (This PR)
+- HUD band is intentionally reduced to a compact strip to keep score/hold/next readable while giving the board most of the portrait space.
+- Board anchor is expanded upward so spawn presentation starts clearly below the HUD visual region.
+- Grid rendering is strengthened with higher-opacity neon lines and slightly thicker strokes for better cell readability.
+- Line clear feedback now uses a brief, energetic line-destruction style pulse: cleared rows flash/blink white-cyan before disappearing, with a short board pulse for impact.
+- Side bars now include lightweight animated neon rails/nodes to replace flat black areas with subtle sci-fi ambient motion.
