@@ -128,9 +128,9 @@ namespace Tetris.Gameplay.Rendering
             }
 
             EnsurePanelImage(scoreAnchor, "ScorePanel", new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.05f, 0.58f), new Vector2(0.95f, 0.90f), 17, TextAnchor.MiddleLeft);
-            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.05f, 0.31f), new Vector2(0.95f, 0.57f), 14, TextAnchor.MiddleLeft);
-            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.05f, 0.06f), new Vector2(0.95f, 0.30f), 14, TextAnchor.MiddleLeft);
+            scoreValueText = EnsureLabel(scoreAnchor, "ScoreValue", new Vector2(0.04f, 0.62f), new Vector2(0.96f, 0.98f), 48, TextAnchor.MiddleLeft);
+            linesValueText = EnsureLabel(scoreAnchor, "LinesValue", new Vector2(0.04f, 0.30f), new Vector2(0.96f, 0.62f), 42, TextAnchor.MiddleLeft);
+            levelValueText = EnsureLabel(scoreAnchor, "LevelValue", new Vector2(0.04f, 0.02f), new Vector2(0.96f, 0.30f), 42, TextAnchor.MiddleLeft);
 
             scoreValueText.text = "Score 0";
             linesValueText.text = "Lines 0";
@@ -145,7 +145,7 @@ namespace Tetris.Gameplay.Rendering
             }
 
             EnsurePanelImage(anchor, panelName, new Color(0.04f, 0.06f, 0.12f, 0.94f), 0);
-            EnsureLabel(anchor, $"{title}Title", new Vector2(0.08f, 0.72f), new Vector2(0.92f, 0.95f), 12, TextAnchor.MiddleCenter).text = title;
+            EnsureLabel(anchor, $"{title}Title", new Vector2(0.05f, 0.60f), new Vector2(0.95f, 0.96f), 36, TextAnchor.MiddleCenter).text = title;
             return EnsurePreviewContentArea(anchor, $"{title}PreviewContentArea");
         }
 
