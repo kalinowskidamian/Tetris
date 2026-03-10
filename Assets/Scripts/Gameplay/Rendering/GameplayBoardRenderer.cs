@@ -17,10 +17,10 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardBackgroundColor = new(0.5098f, 0.549f, 0.5059f, 0.96f); // #828C81
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
-        [SerializeField] private Color boardGridColor = new(0.46f, 0.52f, 0.45f, 0.48f);
+        [SerializeField] private Color boardGridColor = new(0.44f, 0.48f, 0.41f, 0.46f);
         [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
-        [SerializeField] private Color boardCellToneA = new(0.45f, 0.50f, 0.44f, 0.62f);
-        [SerializeField] private Color boardCellToneB = new(0.36f, 0.42f, 0.37f, 0.72f);
+        [SerializeField] private Color boardCellToneA = new(0.47f, 0.51f, 0.45f, 0.62f);
+        [SerializeField] private Color boardCellToneB = new(0.39f, 0.43f, 0.37f, 0.72f);
         [SerializeField] private Color boardCellBorderColor = new(0.30f, 0.72f, 0.92f, 0.42f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
