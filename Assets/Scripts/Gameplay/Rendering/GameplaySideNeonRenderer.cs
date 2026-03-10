@@ -17,7 +17,6 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
         [SerializeField, Range(2f, 48f)] private float railWidth = 30f;
         [SerializeField, Range(0.2f, 1f)] private float railHeightFactor = 1f;
-        [SerializeField, Range(-32f, 32f)] private float verticalOffset = -7f;
         [SerializeField, Range(0.1f, 4f)] private float animationSpeed = 1.15f;
         [SerializeField] private Color outerRailCyan = new(0.1f, 0.94f, 1f, 0.35f);
         [SerializeField] private Color outerRailMagenta = new(0.92f, 0.34f, 1f, 0.34f);
@@ -297,7 +296,7 @@ namespace Tetris.Gameplay.Rendering
                 return;
             }
 
-            zoneRoot.anchoredPosition = zoneRect.center + new Vector2(0f, verticalOffset);
+            zoneRoot.anchoredPosition = zoneRect.center;
             zoneRoot.sizeDelta = zoneRect.size;
 
             var t = Time.unscaledTime * animationSpeed;
