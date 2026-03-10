@@ -16,7 +16,7 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private RectTransform neonWashRect;
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
         [SerializeField, Range(2f, 48f)] private float railWidth = 30f;
-        [SerializeField, Range(0.2f, 0.95f)] private float railHeightFactor = 0.9f;
+        [SerializeField, Range(0.2f, 1f)] private float railHeightFactor = 1f;
         [SerializeField, Range(0.1f, 4f)] private float animationSpeed = 1.15f;
         [SerializeField] private Color outerRailCyan = new(0.1f, 0.94f, 1f, 0.35f);
         [SerializeField] private Color outerRailMagenta = new(0.92f, 0.34f, 1f, 0.34f);
@@ -232,13 +232,9 @@ namespace Tetris.Gameplay.Rendering
                 SetZoneActive(rightZone, false);
                 return;
             }
-            var hudBounds = ResolveHudBounds();
-            var verticalInset = ComputeAdaptiveInset(rootBounds.height);
-            var topLimit = hudBounds.HasValue ? Mathf.Min(rootBounds.yMax - verticalInset, hudBounds.Value.yMin - verticalInset) : rootBounds.yMax - verticalInset;
-            var bottomLimit = Mathf.Max(rootBounds.yMin + verticalInset, boardBounds.yMin + verticalInset);
-            var boardTopLimit = boardBounds.yMax - verticalInset;
-            var zoneTop = Mathf.Min(topLimit, boardTopLimit);
-            var zoneHeight = Mathf.Max(0f, zoneTop - bottomLimit);
+            var bottomLimit = Mathf.Max(rootBounds.yMin, boardBounds.yMin);
+            var topLimit = Mathf.Min(rootBounds.yMax, boardBounds.yMax);
+            var zoneHeight = Mathf.Max(0f, topLimit - bottomLimit);
 
             var leftRawWidth = Mathf.Max(0f, boardBounds.xMin - rootBounds.xMin);
             var rightRawWidth = Mathf.Max(0f, rootBounds.xMax - boardBounds.xMax);
@@ -280,18 +276,6 @@ namespace Tetris.Gameplay.Rendering
             boardBounds = new Rect(fallbackBounds.min.x, fallbackBounds.min.y, fallbackBounds.size.x, fallbackBounds.size.y);
             return true;
         }
-
-        private Rect? ResolveHudBounds()
-        {
-            if (hudRect == null || layoutContainerRect == null)
-            {
-                return null;
-            }
-
-            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, hudRect);
-            return new Rect(bounds.min.x, bounds.min.y, bounds.size.x, bounds.size.y);
-        }
-
         private static Rect CreateZoneRect(float minX, float maxX, float minY, float height)
         {
             var width = Mathf.Max(0f, maxX - minX);
@@ -322,7 +306,7 @@ namespace Tetris.Gameplay.Rendering
             var outerRailWidth = ResolveRailWidth(zoneRect.width, mode);
             var railPadding = Mathf.Max(outerRailWidth * 0.42f, zoneRect.width * 0.04f);
             var localRailX = ((zoneRect.width * 0.5f) - railPadding) * horizontalSign;
-            var railHeight = zoneRect.height * (mode == ZoneRenderMode.Minimal ? Mathf.Clamp(railHeightFactor - 0.1f, 0.55f, 0.92f) : railHeightFactor);
+            var railHeight = zoneRect.height * railHeightFactor;
 
             var innerRailWidth = Mathf.Max(1.25f, outerRailWidth * (mode == ZoneRenderMode.Full ? 0.74f : 0.66f));
             var innerRailHeight = railHeight * (mode == ZoneRenderMode.Minimal ? 0.72f : 0.84f);
