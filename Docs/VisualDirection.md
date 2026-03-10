@@ -17,3 +17,9 @@ Current config assets include fields for:
 - safe-area and scaling behavior
 
 These settings are centralized so art direction can be tuned without refactoring scene code.
+
+## Line-Clear and Board Neon Notes
+- Removed the board-wide `LineClearOverlay` flash so board background luminance remains stable during clears.
+- Line-clear feedback is now localized to cleared rows only (no full-board brightening).
+- Increased neon surround readability with stronger rail/segment alpha and clearer pulsing + segmented motion.
+- Setup tooling changes are **not** required for this visual update; no setup regeneration is needed after pull.

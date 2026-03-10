@@ -16,14 +16,14 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
-        [SerializeField, Range(10f, 180f)] private float neonRailOffset = 46f;
-        [SerializeField, Range(2f, 20f)] private float neonRailWidth = 7f;
-        [SerializeField, Range(12f, 80f)] private float neonAccentHeight = 34f;
-        [SerializeField, Range(4f, 48f)] private float neonAccentTravel = 14f;
-        [SerializeField, Range(0.1f, 3.5f)] private float neonAnimationSpeed = 1.2f;
-        [SerializeField] private Color neonRailColor = new(0.16f, 0.88f, 1f, 0.16f);
-        [SerializeField] private Color neonRailGlowColor = new(0.68f, 0.35f, 1f, 0.10f);
-        [SerializeField] private Color neonSegmentColor = new(0.72f, 0.95f, 1f, 0.22f);
+        [SerializeField, Range(10f, 180f)] private float neonRailOffset = 42f;
+        [SerializeField, Range(2f, 20f)] private float neonRailWidth = 8.5f;
+        [SerializeField, Range(12f, 80f)] private float neonAccentHeight = 38f;
+        [SerializeField, Range(4f, 48f)] private float neonAccentTravel = 18f;
+        [SerializeField, Range(0.1f, 3.5f)] private float neonAnimationSpeed = 1.35f;
+        [SerializeField] private Color neonRailColor = new(0.16f, 0.88f, 1f, 0.22f);
+        [SerializeField] private Color neonRailGlowColor = new(0.68f, 0.35f, 1f, 0.16f);
+        [SerializeField] private Color neonSegmentColor = new(0.72f, 0.95f, 1f, 0.30f);
         [SerializeField] private Color boardGridColor = new(0.35f, 0.82f, 1f, 0.56f);
         [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
         [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.17f, 0.58f);
@@ -54,7 +54,6 @@ namespace Tetris.Gameplay.Rendering
         private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
         private readonly List<Image> lineClearEffectBlocks = new();
-        private float lineClearPulse;
         private float lineClearRowsPulse;
         private readonly List<int> lineClearRows = new();
 
@@ -131,13 +130,12 @@ namespace Tetris.Gameplay.Rendering
             var glowPadding = new Vector2(boardOuterGlowThickness, boardOuterGlowThickness);
 
             SetRect(boardOuterGlow.rectTransform, boardRect.center, boardRect.size + glowPadding * 2f);
-            var pulse = Mathf.Clamp01(lineClearPulse);
-            boardBackground.color = Color.Lerp(boardBackgroundColor, new Color(0.35f, 0.8f, 1f, 0.34f), pulse);
-            boardFrame.color = Color.Lerp(boardFrameColor, new Color(0.35f, 0.95f, 1f, 0.96f), pulse);
-            boardOuterGlow.color = Color.Lerp(boardOuterGlowColor, new Color(0.28f, 0.85f, 1f, 0.42f), pulse);
+            boardBackground.color = boardBackgroundColor;
+            boardFrame.color = boardFrameColor;
+            boardOuterGlow.color = boardOuterGlowColor;
             SetRect(boardBackground.rectTransform, boardRect.center, boardRect.size);
             SetRect(boardFrame.rectTransform, boardRect.center, boardRect.size + framePadding * 2f);
-            UpdateNeonDecor(metrics, pulse);
+            UpdateNeonDecor(metrics);
         }
 
         private void EnsureNeonDecor()
@@ -202,7 +200,7 @@ namespace Tetris.Gameplay.Rendering
             }
         }
 
-        private void UpdateNeonDecor(BoardMetrics metrics, float lineClearPulseAmount)
+        private void UpdateNeonDecor(BoardMetrics metrics)
         {
             if (neonDecorRoot == null)
             {
@@ -223,19 +221,18 @@ namespace Tetris.Gameplay.Rendering
             PlaceDecorStrip(leftInnerGlow.rectTransform, new Vector2(boardRect.xMin - (neonRailOffset * 0.72f), railCenterY), new Vector2(neonRailWidth * 0.85f, railHeight * 0.82f));
             PlaceDecorStrip(rightInnerGlow.rectTransform, new Vector2(boardRect.xMax + (neonRailOffset * 0.72f), railCenterY), new Vector2(neonRailWidth * 0.85f, railHeight * 0.82f));
 
-            var pulseBoost = Mathf.Lerp(0f, 0.12f, lineClearPulseAmount);
-            leftRail.color = WithAlpha(neonRailColor, 0.09f + (0.08f * basePulse) + pulseBoost);
-            rightRail.color = WithAlpha(neonRailColor, 0.09f + (0.08f * (1f - basePulse)) + pulseBoost);
-            leftInnerGlow.color = WithAlpha(neonRailGlowColor, 0.07f + (0.05f * basePulse) + (pulseBoost * 0.6f));
-            rightInnerGlow.color = WithAlpha(neonRailGlowColor, 0.07f + (0.05f * (1f - basePulse)) + (pulseBoost * 0.6f));
+            leftRail.color = WithAlpha(neonRailColor, 0.18f + (0.16f * basePulse));
+            rightRail.color = WithAlpha(neonRailColor, 0.18f + (0.16f * (1f - basePulse)));
+            leftInnerGlow.color = WithAlpha(neonRailGlowColor, 0.14f + (0.10f * basePulse));
+            rightInnerGlow.color = WithAlpha(neonRailGlowColor, 0.14f + (0.10f * (1f - basePulse)));
 
-            UpdateAccentStrips(leftAccents, boardRect.xMin - neonRailOffset, boardRect, time, pulseBoost, false);
-            UpdateAccentStrips(rightAccents, boardRect.xMax + neonRailOffset, boardRect, time, pulseBoost, true);
+            UpdateAccentStrips(leftAccents, boardRect.xMin - neonRailOffset, boardRect, time, false);
+            UpdateAccentStrips(rightAccents, boardRect.xMax + neonRailOffset, boardRect, time, true);
         }
 
 
 
-        private void UpdateAccentStrips(List<Image> accents, float xPosition, Rect boardRect, float time, float pulseBoost, bool reverseMotion)
+        private void UpdateAccentStrips(List<Image> accents, float xPosition, Rect boardRect, float time, bool reverseMotion)
         {
             if (accents.Count == 0)
             {
@@ -249,7 +246,7 @@ namespace Tetris.Gameplay.Rendering
             for (var i = 0; i < accents.Count; i++)
             {
                 var accent = accents[i];
-                var phase = time * 1.8f + (i * 0.9f);
+                var phase = time * 2.2f + (i * 1.1f);
                 var travel = Mathf.Sin(phase) * neonAccentTravel;
                 if (reverseMotion)
                 {
@@ -260,8 +257,8 @@ namespace Tetris.Gameplay.Rendering
                 centerY = Mathf.Clamp(centerY, boardRect.yMin + (neonAccentHeight * 0.5f), boardRect.yMax - (neonAccentHeight * 0.5f));
                 PlaceDecorStrip(accent.rectTransform, new Vector2(xPosition, centerY), new Vector2(neonRailWidth * 1.55f, neonAccentHeight));
 
-                var alphaWave = 0.5f + (0.5f * Mathf.Sin((time * 2.5f) + (i * 0.8f)));
-                accent.color = WithAlpha(neonSegmentColor, 0.1f + (0.1f * alphaWave) + (pulseBoost * 0.85f));
+                var alphaWave = 0.5f + (0.5f * Mathf.Sin((time * 3.2f) + (i * 1.25f)));
+                accent.color = WithAlpha(neonSegmentColor, 0.18f + (0.22f * alphaWave));
             }
         }
 
@@ -280,11 +277,6 @@ namespace Tetris.Gameplay.Rendering
             return color;
         }
 
-        public void TriggerLineClearPulse(float intensity)
-        {
-            lineClearPulse = Mathf.Clamp01(Mathf.Max(lineClearPulse, intensity));
-        }
-
         public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity)
         {
             lineClearRows.Clear();
@@ -301,7 +293,6 @@ namespace Tetris.Gameplay.Rendering
 
         private void UpdateLineClearPulse()
         {
-            lineClearPulse = Mathf.Max(0f, lineClearPulse - Time.deltaTime * 4.8f);
             lineClearRowsPulse = Mathf.Max(0f, lineClearRowsPulse - Time.deltaTime * 8.5f);
 
             if (lineClearRowsPulse <= 0f)
