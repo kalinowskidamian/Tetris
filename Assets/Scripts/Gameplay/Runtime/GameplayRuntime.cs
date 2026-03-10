@@ -8,6 +8,7 @@ namespace Tetris.Gameplay.Runtime
     {
         private readonly BoardModel board;
         private readonly IPieceGenerator generator;
+        private readonly List<int> pendingClearedRows = new();
 
         public GameplayRuntime(BoardModel board, IPieceGenerator generator)
         {
@@ -24,6 +25,7 @@ namespace Tetris.Gameplay.Runtime
         public int Level { get; private set; } = 1;
         public PieceDefinition HeldPiece { get; private set; }
         public bool CanHoldThisTurn { get; private set; }
+        public bool IsResolvingLineClear => pendingClearedRows.Count > 0;
 
         public event Action<IReadOnlyList<LineClearFeedbackSnapshot>> LinesClearedFeedbackRequested;
         public event Action GameOver;
@@ -36,6 +38,7 @@ namespace Tetris.Gameplay.Runtime
             Level = 1;
             HeldPiece = null;
             CanHoldThisTurn = true;
+            pendingClearedRows.Clear();
             NextPiece = generator.NextPiece();
             SpawnFromNext();
         }
@@ -183,23 +186,41 @@ namespace Tetris.Gameplay.Runtime
             return LockActivePiece();
         }
 
+        public bool ResolvePendingLineClear()
+        {
+            if (!IsResolvingLineClear)
+            {
+                return false;
+            }
+
+            board.ClearLines(pendingClearedRows);
+            ApplyProgression(pendingClearedRows.Count);
+            pendingClearedRows.Clear();
+            SpawnFromNext();
+            return true;
+        }
+
         private IReadOnlyList<int> LockActivePiece()
         {
             var active = ActivePiece.Value;
             board.Lock(active.Definition, active.Origin, active.RotationIndex);
             var fullRows = board.GetFullLines();
             var feedbackSnapshot = BuildLineClearFeedback(fullRows);
-            board.ClearLines(fullRows);
-            var cleared = fullRows;
-            ApplyProgression(cleared.Count);
-
-            if (cleared.Count > 0)
+            if (fullRows.Count > 0)
             {
+                pendingClearedRows.Clear();
+                for (var i = 0; i < fullRows.Count; i++)
+                {
+                    pendingClearedRows.Add(fullRows[i]);
+                }
+
                 LinesClearedFeedbackRequested?.Invoke(feedbackSnapshot);
+                ActivePiece = null;
+                return fullRows;
             }
 
             SpawnFromNext();
-            return cleared;
+            return fullRows;
         }
 
         private IReadOnlyList<LineClearFeedbackSnapshot> BuildLineClearFeedback(IReadOnlyList<int> rows)

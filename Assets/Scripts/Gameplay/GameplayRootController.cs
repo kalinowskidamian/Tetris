@@ -18,6 +18,7 @@ namespace Tetris.Gameplay
         [SerializeField, Range(0.75f, 0.98f)] private float gravityLevelMultiplier = 0.92f;
         [SerializeField, Min(0.05f)] private float minGravitySeconds = 0.09f;
         [SerializeField, Min(0.05f)] private float lockDelaySeconds = 0.45f;
+        [SerializeField, Min(0.1f)] private float lineClearDelaySeconds = 0.5f;
 
         [Header("Scene References")]
         [SerializeField] private BoardLayoutAnchor boardAnchor;
@@ -38,6 +39,7 @@ namespace Tetris.Gameplay
         private float lockDelayTimer;
         private bool isPaused;
         private bool reducedEffects;
+        private float lineClearDelayTimer;
 
         private void Awake()
         {
@@ -110,6 +112,12 @@ namespace Tetris.Gameplay
             if (isPaused)
             {
                 ProcessPauseInput();
+                Render();
+                return;
+            }
+
+            if (ProcessLineClearDelayStep())
+            {
                 Render();
                 return;
             }
@@ -303,6 +311,7 @@ namespace Tetris.Gameplay
         {
             gravityTimer = 0f;
             lockDelayTimer = 0f;
+            lineClearDelayTimer = 0f;
             isPaused = false;
 
             if (boardRenderer != null)
@@ -321,9 +330,10 @@ namespace Tetris.Gameplay
 
         private void HandleLinesCleared(IReadOnlyList<LineClearFeedbackSnapshot> rows)
         {
+            lineClearDelayTimer = 0f;
             if (boardRenderer != null)
             {
-                boardRenderer.TriggerLineClearRows(rows, reducedEffects ? 0.72f : 1f);
+                boardRenderer.TriggerLineClearRows(rows, reducedEffects ? 0.72f : 1f, lineClearDelaySeconds);
             }
 
             Debug.Log($"Lines cleared: {rows.Count} (total {gameplayRuntime.LinesCleared})");
@@ -332,6 +342,24 @@ namespace Tetris.Gameplay
         private void HandleGameOver()
         {
             Debug.Log("Game over reached. Tap to restart run.");
+        }
+
+        private bool ProcessLineClearDelayStep()
+        {
+            if (gameplayRuntime == null || !gameplayRuntime.IsResolvingLineClear)
+            {
+                lineClearDelayTimer = 0f;
+                return false;
+            }
+
+            lineClearDelayTimer += Time.deltaTime;
+            if (lineClearDelayTimer < lineClearDelaySeconds)
+            {
+                return true;
+            }
+
+            lineClearDelayTimer = 0f;
+            return gameplayRuntime.ResolvePendingLineClear();
         }
 
         private void ApplyBackdropChrome()

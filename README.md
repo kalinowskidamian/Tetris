@@ -60,7 +60,7 @@ Editor/debug keyboard controls are available only in `UNITY_EDITOR` or `DEVELOPM
 ## Preview + Run Loop
 - **Next piece preview:** HUD now renders a simple code-driven mini-grid preview in portrait layout from `NextPiecePreviewAnchor`.
 - **Game over and restart:** if a piece cannot spawn, a game-over message is shown; any new gameplay input restarts a fresh run immediately.
-- **Line clear feedback hook:** runtime exposes an event when one or more lines are cleared so VFX/UI feedback can be connected cleanly in later passes.
+- **Delayed line clear flow:** full rows now enter a short (~0.5s) resolving window where only the soon-to-be-cleared row(s) flash, then collapse/score progression happens after the effect completes.
 
 ## Initial Setup Tool
 Use the menu command below to create/update all foundational assets in an idempotent way:
