@@ -61,6 +61,13 @@ namespace Tetris.Gameplay.Domain
 
         public IReadOnlyList<int> ClearFullLines()
         {
+            var clearedRows = GetFullLines();
+            ClearLines(clearedRows);
+            return clearedRows;
+        }
+
+        public IReadOnlyList<int> GetFullLines()
+        {
             var clearedRows = new List<int>();
 
             for (var y = 0; y < Height; y++)
@@ -71,11 +78,22 @@ namespace Tetris.Gameplay.Domain
                 }
 
                 clearedRows.Add(y);
-                CollapseRowsFrom(y);
-                y -= 1;
             }
 
             return clearedRows;
+        }
+
+        public void ClearLines(IReadOnlyList<int> rows)
+        {
+            if (rows == null || rows.Count == 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                CollapseRowsFrom(rows[i] - i);
+            }
         }
 
         private bool IsRowFull(int y)

@@ -332,7 +332,7 @@ namespace Tetris.Gameplay
             return Mathf.Max(minGravitySeconds, scaled);
         }
 
-        private void HandleLinesCleared(IReadOnlyList<int> rows)
+        private void HandleLinesCleared(IReadOnlyList<LineClearFeedbackSnapshot> rows)
         {
             lineClearOverlayTimer = reducedEffects ? 0.10f : 0.20f;
             if (lineClearOverlay != null)

@@ -16,11 +16,11 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
-        [SerializeField] private Color boardGridColor = new(0.26f, 0.63f, 0.85f, 0.32f);
-        [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.15f;
-        [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.16f, 0.44f);
-        [SerializeField] private Color boardCellToneB = new(0.08f, 0.14f, 0.22f, 0.52f);
-        [SerializeField] private Color boardCellBorderColor = new(0.24f, 0.57f, 0.78f, 0.22f);
+        [SerializeField] private Color boardGridColor = new(0.35f, 0.82f, 1f, 0.56f);
+        [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
+        [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.17f, 0.58f);
+        [SerializeField] private Color boardCellToneB = new(0.10f, 0.17f, 0.26f, 0.72f);
+        [SerializeField] private Color boardCellBorderColor = new(0.30f, 0.72f, 0.92f, 0.42f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -38,9 +38,10 @@ namespace Tetris.Gameplay.Rendering
         private Image boardOuterGlow;
         private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
+        private readonly List<Image> lineClearEffectBlocks = new();
         private float lineClearPulse;
         private float lineClearRowsPulse;
-        private readonly HashSet<int> highlightedRows = new();
+        private readonly List<LineClearCellSnapshot> lineClearSnapshots = new();
 
         private void Awake()
         {
@@ -69,6 +70,7 @@ namespace Tetris.Gameplay.Rendering
             index = RenderBoard(board, index, metrics);
             index = RenderGhost(activePiece, ghostPiece, index, metrics);
             index = RenderActive(activePiece, index, metrics);
+            RenderLineClearEffect(metrics);
 
             for (var i = index; i < blocks.Count; i++)
             {
@@ -126,14 +128,19 @@ namespace Tetris.Gameplay.Rendering
             lineClearPulse = Mathf.Clamp01(Mathf.Max(lineClearPulse, intensity));
         }
 
-        public void TriggerLineClearRows(IReadOnlyList<int> rows, float intensity)
+        public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity)
         {
-            highlightedRows.Clear();
+            lineClearSnapshots.Clear();
             if (rows != null)
             {
                 for (var i = 0; i < rows.Count; i++)
                 {
-                    highlightedRows.Add(rows[i]);
+                    var row = rows[i];
+                    for (var x = 0; x < row.Cells.Count; x++)
+                    {
+                        var color = GetLockedCellColor(GetPieceColor(row.Cells[x]));
+                        lineClearSnapshots.Add(new LineClearCellSnapshot(x, row.Row, color));
+                    }
                 }
             }
 
@@ -147,7 +154,7 @@ namespace Tetris.Gameplay.Rendering
 
             if (lineClearRowsPulse <= 0f)
             {
-                highlightedRows.Clear();
+                lineClearSnapshots.Clear();
             }
         }
 
@@ -269,7 +276,7 @@ namespace Tetris.Gameplay.Rendering
                     }
 
                     var block = blocks[index++];
-                    SetupBlock(block, x, y, GetBoardCellColor(GetLockedCellColor(GetPieceColor(pieceId.Value)), y), metrics);
+                    SetupBlock(block, x, y, GetLockedCellColor(GetPieceColor(pieceId.Value)), metrics);
                 }
             }
 
@@ -323,20 +330,6 @@ namespace Tetris.Gameplay.Rendering
             return index;
         }
 
-        private Color GetBoardCellColor(Color baseColor, int row)
-        {
-            if (!highlightedRows.Contains(row))
-            {
-                return baseColor;
-            }
-
-            var blink = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 70f));
-            var flash = Mathf.Clamp01(lineClearRowsPulse * 1.4f) * Mathf.Lerp(0.65f, 1f, blink);
-            var energized = Color.Lerp(baseColor, Color.white, flash);
-            energized.a = Mathf.Lerp(baseColor.a, 1f, flash);
-            return energized;
-        }
-
         private Color GetLockedCellColor(Color baseColor)
         {
             var shaded = Color.Lerp(baseColor, new Color(0.02f, 0.03f, 0.05f, 1f), 0.17f);
@@ -364,6 +357,37 @@ namespace Tetris.Gameplay.Rendering
             block.color = color;
 
             var rect = (RectTransform)block.transform;
+            rect.anchoredPosition = metrics.GetCellPosition(x, y);
+            rect.sizeDelta = metrics.CellSize;
+        }
+
+        private void RenderLineClearEffect(BoardMetrics metrics)
+        {
+            EnsureLineClearEffectPool(lineClearSnapshots.Count);
+
+            var flashPulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 88f));
+            var flashAmount = Mathf.Clamp01(lineClearRowsPulse * 1.6f) * Mathf.Lerp(0.75f, 1f, flashPulse);
+            for (var i = 0; i < lineClearSnapshots.Count; i++)
+            {
+                var snapshot = lineClearSnapshots[i];
+                var effectBlock = lineClearEffectBlocks[i];
+                effectBlock.gameObject.SetActive(true);
+
+                var flashColor = Color.Lerp(snapshot.Color, Color.white, flashAmount);
+                flashColor.a = Mathf.Lerp(snapshot.Color.a, 1f, flashAmount);
+                SetupLineClearEffectBlock(effectBlock, snapshot.X, snapshot.Y, flashColor, metrics);
+            }
+
+            for (var i = lineClearSnapshots.Count; i < lineClearEffectBlocks.Count; i++)
+            {
+                lineClearEffectBlocks[i].gameObject.SetActive(false);
+            }
+        }
+
+        private void SetupLineClearEffectBlock(Image block, int x, int y, Color color, BoardMetrics metrics)
+        {
+            block.color = color;
+            var rect = block.rectTransform;
             rect.anchoredPosition = metrics.GetCellPosition(x, y);
             rect.sizeDelta = metrics.CellSize;
         }
@@ -428,6 +452,41 @@ namespace Tetris.Gameplay.Rendering
                 image.raycastTarget = false;
                 blocks.Add(image);
             }
+        }
+
+        private void EnsureLineClearEffectPool(int count)
+        {
+            while (lineClearEffectBlocks.Count < count)
+            {
+                var block = new GameObject($"LineClearEffect_{lineClearEffectBlocks.Count}", typeof(RectTransform), typeof(Image));
+                block.transform.SetParent(transform, false);
+                block.transform.SetAsLastSibling();
+
+                var rect = (RectTransform)block.transform;
+                rect.anchorMin = new Vector2(0f, 0f);
+                rect.anchorMax = new Vector2(0f, 0f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+
+                var image = block.GetComponent<Image>();
+                image.sprite = blockSprite != null ? blockSprite : CreateBlockSprite();
+                image.type = Image.Type.Simple;
+                image.raycastTarget = false;
+                lineClearEffectBlocks.Add(image);
+            }
+        }
+
+        private readonly struct LineClearCellSnapshot
+        {
+            public LineClearCellSnapshot(int x, int y, Color color)
+            {
+                X = x;
+                Y = y;
+                Color = color;
+            }
+
+            public int X { get; }
+            public int Y { get; }
+            public Color Color { get; }
         }
 
         private static Sprite CreateBlockSprite()
