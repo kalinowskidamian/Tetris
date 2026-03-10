@@ -94,12 +94,14 @@ namespace Tetris.Gameplay.Rendering
                 return false;
             }
 
+            var rectLocalMin = BoardRectSpaceToLocalPoint(new Vector2(visibleBoardRectLocal.xMin, visibleBoardRectLocal.yMin));
+            var rectLocalMax = BoardRectSpaceToLocalPoint(new Vector2(visibleBoardRectLocal.xMax, visibleBoardRectLocal.yMax));
             var localCorners = new[]
             {
-                new Vector3(visibleBoardRectLocal.xMin, visibleBoardRectLocal.yMin, 0f),
-                new Vector3(visibleBoardRectLocal.xMin, visibleBoardRectLocal.yMax, 0f),
-                new Vector3(visibleBoardRectLocal.xMax, visibleBoardRectLocal.yMax, 0f),
-                new Vector3(visibleBoardRectLocal.xMax, visibleBoardRectLocal.yMin, 0f)
+                new Vector3(rectLocalMin.x, rectLocalMin.y, 0f),
+                new Vector3(rectLocalMin.x, rectLocalMax.y, 0f),
+                new Vector3(rectLocalMax.x, rectLocalMax.y, 0f),
+                new Vector3(rectLocalMax.x, rectLocalMin.y, 0f)
             };
 
             var min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
@@ -114,6 +116,14 @@ namespace Tetris.Gameplay.Rendering
 
             bounds = Rect.MinMaxRect(min.x, min.y, max.x, max.y);
             return true;
+        }
+
+        private Vector2 BoardRectSpaceToLocalPoint(Vector2 boardRectSpacePoint)
+        {
+            var localRect = rootRect.rect;
+            return new Vector2(
+                localRect.xMin + boardRectSpacePoint.x,
+                localRect.yMin + boardRectSpacePoint.y);
         }
 
         private void EnsureBoardChrome()
