@@ -60,7 +60,7 @@ Editor/debug keyboard controls are available only in `UNITY_EDITOR` or `DEVELOPM
 ## Preview + Run Loop
 - **Next piece preview:** HUD now renders a simple code-driven mini-grid preview in portrait layout from `NextPiecePreviewAnchor`.
 - **Game over and restart:** if a piece cannot spawn, a game-over message is shown; any new gameplay input restarts a fresh run immediately.
-- **Delayed line clear flow:** full rows now enter a short (~0.5s) resolving window where only the soon-to-be-cleared row(s) flash, then collapse/score progression happens after the effect completes.
+- **Delayed line clear flow:** full rows now enter a short (~0.5s) resolving window where the actual cleared-row cells visibly blink/pulse with a brighter energized tint, then collapse/score progression happens after the effect completes. Other rows and the board background remain unchanged during this window.
 
 ## Initial Setup Tool
 Use the menu command below to create/update all foundational assets in an idempotent way:
@@ -69,7 +69,7 @@ Use the menu command below to create/update all foundational assets in an idempo
 
 What this menu action ensures:
 
-> For this PR, rerunning setup is **not required** because new HUD/visual elements are created idempotently at runtime on existing generated anchors.
+> For this PR, rerunning setup is **not required** because the stronger line-clear flash effect is runtime-only and uses existing generated anchors.
 
 - required folder structure exists
 - config assets exist in `Assets/Resources/Configs`

@@ -51,7 +51,7 @@ Gameplay code is split into three layers under `Assets/Scripts/Gameplay`:
 ## Gameplay Presentation Pass (Preview/Grid/Pause)
 - **Next-piece preview correctness:** preview rendering now uses the same piece rotation state and positive-Y orientation convention as gameplay spawn, so previewed shapes match spawned pieces exactly.
 - **Board grid:** board rendering now draws a subtle code-driven cell grid behind active/locked cells, aligned to board metrics and sized from the same cell step used for gameplay blocks.
-- **Line-clear feedback:** full rows are held for ~0.5 seconds, only those rows flash with an energized pulse, and collapse/scoring resolves after the effect window.
+- **Line-clear feedback:** full rows are held for ~0.5 seconds, only the actual cells in those cleared rows flash/pulse with an energized tint, and collapse/scoring resolves after the effect window.
 - **Pause flow:** gameplay now supports a runtime pause state. While paused, gravity/input lock progression stops and a pause/settings overlay is shown.
 - **Minimal in-game settings:** pause overlay includes resume, restart run, effects intensity toggle (full/reduced), and a menu placeholder button that only loads `MainMenu` if that scene is available.
 
