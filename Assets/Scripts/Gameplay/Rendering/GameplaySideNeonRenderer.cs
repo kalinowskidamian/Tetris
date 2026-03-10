@@ -10,6 +10,7 @@ namespace Tetris.Gameplay.Rendering
     {
         [SerializeField] private RectTransform layoutContainerRect;
         [SerializeField] private RectTransform boardRect;
+        private GameplayBoardRenderer boardRenderer;
         [SerializeField] private RectTransform hudRect;
         [SerializeField] private RectTransform darkBackdropRect;
         [SerializeField] private RectTransform neonWashRect;
@@ -77,15 +78,17 @@ namespace Tetris.Gameplay.Rendering
             RenderSideDecor();
         }
 
-        public void BindBoardRect(RectTransform targetBoardRect)
+        public void BindBoardRect(RectTransform targetBoardRect, GameplayBoardRenderer renderer = null)
         {
             boardRect = targetBoardRect;
+            boardRenderer = renderer;
         }
 
-        public void BindLayout(RectTransform container, RectTransform board, RectTransform hud, RectTransform darkBackdrop, RectTransform neonWash)
+        public void BindLayout(RectTransform container, RectTransform board, RectTransform hud, RectTransform darkBackdrop, RectTransform neonWash, GameplayBoardRenderer renderer = null)
         {
             layoutContainerRect = container;
             boardRect = board;
+            boardRenderer = renderer;
             hudRect = hud;
             darkBackdropRect = darkBackdrop;
             neonWashRect = neonWash;
@@ -225,23 +228,28 @@ namespace Tetris.Gameplay.Rendering
             }
 
             var rootBounds = layoutContainerRect.rect;
-            var boardBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, boardRect);
+            if (!TryResolveVisibleBoardBounds(out var boardBounds))
+            {
+                SetZoneActive(leftZone, false);
+                SetZoneActive(rightZone, false);
+                return;
+            }
             var hudBounds = ResolveHudBounds();
             var verticalInset = ComputeAdaptiveInset(rootBounds.height);
             var topLimit = hudBounds.HasValue ? Mathf.Min(rootBounds.yMax - verticalInset, hudBounds.Value.yMin - verticalInset) : rootBounds.yMax - verticalInset;
-            var bottomLimit = Mathf.Max(rootBounds.yMin + verticalInset, boardBounds.min.y + verticalInset);
-            var boardTopLimit = boardBounds.max.y - verticalInset;
+            var bottomLimit = Mathf.Max(rootBounds.yMin + verticalInset, boardBounds.yMin + verticalInset);
+            var boardTopLimit = boardBounds.yMax - verticalInset;
             var zoneTop = Mathf.Min(topLimit, boardTopLimit);
             var zoneHeight = Mathf.Max(0f, zoneTop - bottomLimit);
 
-            var leftRawWidth = Mathf.Max(0f, boardBounds.min.x - rootBounds.xMin);
-            var rightRawWidth = Mathf.Max(0f, rootBounds.xMax - boardBounds.max.x);
+            var leftRawWidth = Mathf.Max(0f, boardBounds.xMin - rootBounds.xMin);
+            var rightRawWidth = Mathf.Max(0f, rootBounds.xMax - boardBounds.xMax);
             var leftInset = ComputeAdaptiveInset(leftRawWidth);
             var rightInset = ComputeAdaptiveInset(rightRawWidth);
 
             var leftMin = rootBounds.xMin + leftInset;
-            var leftMax = boardBounds.min.x - leftInset;
-            var rightMin = boardBounds.max.x + rightInset;
+            var leftMax = boardBounds.xMin - leftInset;
+            var rightMin = boardBounds.xMax + rightInset;
             var rightMax = rootBounds.xMax - rightInset;
 
             var leftRect = CreateZoneRect(leftMin, leftMax, bottomLimit, zoneHeight);
@@ -249,6 +257,30 @@ namespace Tetris.Gameplay.Rendering
 
             RenderZone(leftZone, leftDecor, leftRect, false);
             RenderZone(rightZone, rightDecor, rightRect, true);
+        }
+
+
+        private bool TryResolveVisibleBoardBounds(out Rect boardBounds)
+        {
+            boardBounds = default;
+            if (layoutContainerRect == null)
+            {
+                return false;
+            }
+
+            if (boardRenderer != null && boardRenderer.TryGetVisibleBoardBounds(layoutContainerRect, out boardBounds))
+            {
+                return true;
+            }
+
+            if (boardRect == null)
+            {
+                return false;
+            }
+
+            var fallbackBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, boardRect);
+            boardBounds = new Rect(fallbackBounds.min.x, fallbackBounds.min.y, fallbackBounds.size.x, fallbackBounds.size.y);
+            return true;
         }
 
         private Rect? ResolveHudBounds()
