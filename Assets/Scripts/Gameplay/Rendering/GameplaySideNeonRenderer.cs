@@ -17,9 +17,6 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
         [SerializeField, Range(2f, 30f)] private float railWidth = 15f;
         [SerializeField, Range(0.2f, 0.95f)] private float railHeightFactor = 0.9f;
-        [SerializeField, Range(0.05f, 0.45f)] private float motionSpanFactor = 0.24f;
-        [SerializeField, Range(0.05f, 0.45f)] private float segmentHeightFactor = 0.14f;
-        [SerializeField, Range(8f, 40f)] private float minSegmentHeight = 30f;
         [SerializeField, Range(0.1f, 4f)] private float animationSpeed = 1.15f;
         [SerializeField] private Color outerRailCyan = new(0.1f, 0.94f, 1f, 0.35f);
         [SerializeField] private Color outerRailMagenta = new(0.92f, 0.34f, 1f, 0.34f);
@@ -322,8 +319,6 @@ namespace Tetris.Gameplay.Rendering
             var pulse = 0.5f + (0.5f * Mathf.Sin((t * 1.6f) + (rightSide ? 1.15f : 0f)));
             var horizontalSign = rightSide ? -1f : 1f;
             var mode = ResolveRenderMode(zoneRect.width);
-            var activeSegments = mode == ZoneRenderMode.Minimal ? 1 : mode == ZoneRenderMode.Medium ? 2 : SegmentCountPerSide;
-
             var outerRailWidth = ResolveRailWidth(zoneRect.width, mode);
             var railPadding = Mathf.Max(outerRailWidth * 0.56f, zoneRect.width * 0.06f);
             var localRailX = ((zoneRect.width * 0.5f) - railPadding) * horizontalSign;
@@ -341,43 +336,14 @@ namespace Tetris.Gameplay.Rendering
             decor.OuterRail.color = WithAlpha(Color.Lerp(outerRailCyan, outerRailMagenta, pulse), mode == ZoneRenderMode.Minimal ? 0.32f + (0.2f * pulse) : 0.25f + (0.28f * pulse));
             decor.InnerRail.color = WithAlpha(innerGlowBlue, mode == ZoneRenderMode.Minimal ? 0.18f + (0.16f * (1f - pulse)) : 0.16f + (0.22f * (1f - pulse)));
 
-            RenderSegments(decor.Segments, localRailX, zoneRect.size, outerRailWidth, t, rightSide, activeSegments, mode);
+            HideSegments(decor.Segments);
         }
 
-        private void RenderSegments(List<Image> segments, float railX, Vector2 zoneSize, float resolvedRailWidth, float timeValue, bool rightSide, int activeCount, ZoneRenderMode mode)
+        private static void HideSegments(List<Image> segments)
         {
-            var visibleCount = Mathf.Clamp(activeCount, 0, segments.Count);
-            var segmentHeight = Mathf.Min(zoneSize.y * 0.42f, Mathf.Max(minSegmentHeight * (mode == ZoneRenderMode.Full ? 1f : 0.6f), zoneSize.y * segmentHeightFactor * (mode == ZoneRenderMode.Minimal ? 0.5f : 0.72f)));
-            var movementSpan = Mathf.Max(mode == ZoneRenderMode.Minimal ? 4f : 8f, zoneSize.y * motionSpanFactor * (mode == ZoneRenderMode.Full ? 1f : 0.5f));
-            var laneHeight = Mathf.Max(1f, zoneSize.y - segmentHeight);
-            var laneStart = (-zoneSize.y * 0.5f) + (segmentHeight * 0.5f);
-            var spacing = visibleCount > 1 ? laneHeight / (visibleCount - 1) : 0f;
-            var lateralSpread = Mathf.Clamp(zoneSize.x * (mode == ZoneRenderMode.Minimal ? 0.03f : 0.07f), 0.8f, resolvedRailWidth * 0.36f);
-
-            for (var i = visibleCount; i < segments.Count; i++)
+            for (var i = 0; i < segments.Count; i++)
             {
                 segments[i].enabled = false;
-            }
-
-            for (var i = 0; i < visibleCount; i++)
-            {
-                segments[i].enabled = true;
-                var phase = (timeValue * 1.85f) + (i * 1.15f);
-                var travel = Mathf.Sin(phase) * movementSpan;
-                if (rightSide)
-                {
-                    travel *= -1f;
-                }
-
-                var y = Mathf.Clamp(laneStart + (spacing * i) + travel, (-zoneSize.y * 0.5f) + (segmentHeight * 0.5f), (zoneSize.y * 0.5f) - (segmentHeight * 0.5f));
-                var width = resolvedRailWidth * (mode == ZoneRenderMode.Minimal ? 1.28f : 1.45f + (0.24f * Mathf.Sin((timeValue * 3.15f) + i)));
-                var lateralOffset = Mathf.Sin((timeValue * 2.25f) + (i * 0.66f)) * lateralSpread;
-                var x = Mathf.Clamp(railX + lateralOffset, (-zoneSize.x * 0.5f) + (width * 0.5f), (zoneSize.x * 0.5f) - (width * 0.5f));
-                Place(segments[i].rectTransform, new Vector2(x, y), new Vector2(width, segmentHeight));
-
-                var wave = 0.5f + (0.5f * Mathf.Sin((timeValue * 3.4f) + (i * 0.85f)));
-                var alpha = mode == ZoneRenderMode.Minimal ? 0.16f + (0.16f * wave) : 0.18f + (0.24f * wave);
-                segments[i].color = WithAlpha(segmentPurple, alpha);
             }
         }
 
