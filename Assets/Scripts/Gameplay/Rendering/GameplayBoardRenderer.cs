@@ -13,15 +13,21 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField, Range(0f, 3f)] private float visibleTopPaddingRows = 1.9f;
         [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 10f;
         [SerializeField, Range(0f, 28f)] private float boardOuterGlowThickness = 18f;
-        private static readonly Color LegacyBoardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
+        private static readonly Color LegacyBoardBackgroundColor = new(0.949f, 0.949f, 0.941f, 0.96f);
+        private static readonly Color LegacyBoardFrameColor = new(0.812f, 0.804f, 0.772f, 0.78f);
+        private static readonly Color LegacyBoardOuterGlowColor = new(0.741f, 0.722f, 0.686f, 0.30f);
+        private static readonly Color LegacyBoardGridColor = new(0.662f, 0.646f, 0.612f, 0.52f);
+        private static readonly Color LegacyBoardCellToneA = new(0.918f, 0.914f, 0.892f, 0.66f);
+        private static readonly Color LegacyBoardCellToneB = new(0.852f, 0.840f, 0.804f, 0.76f);
+        private static readonly Color LegacyBoardCellBorderColor = new(0.768f, 0.742f, 0.694f, 0.48f);
         [SerializeField] private Color boardBackgroundColor = new(0.949f, 0.949f, 0.941f, 0.96f); // #F2F2F0
-        [SerializeField] private Color boardFrameColor = new(0.812f, 0.804f, 0.772f, 0.78f);
-        [SerializeField] private Color boardOuterGlowColor = new(0.741f, 0.722f, 0.686f, 0.30f);
-        [SerializeField] private Color boardGridColor = new(0.662f, 0.646f, 0.612f, 0.52f);
+        [SerializeField] private Color boardFrameColor = new(0.831f, 0.816f, 0.761f, 0.78f);
+        [SerializeField] private Color boardOuterGlowColor = new(0.769f, 0.745f, 0.682f, 0.28f);
+        [SerializeField] private Color boardGridColor = new(0.639f, 0.616f, 0.561f, 0.54f);
         [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
-        [SerializeField] private Color boardCellToneA = new(0.918f, 0.914f, 0.892f, 0.66f);
-        [SerializeField] private Color boardCellToneB = new(0.852f, 0.840f, 0.804f, 0.76f);
-        [SerializeField] private Color boardCellBorderColor = new(0.768f, 0.742f, 0.694f, 0.48f);
+        [SerializeField] private Color boardCellToneA = new(0.925f, 0.922f, 0.902f, 0.66f);
+        [SerializeField] private Color boardCellToneB = new(0.875f, 0.867f, 0.824f, 0.76f);
+        [SerializeField] private Color boardCellBorderColor = new(0.741f, 0.718f, 0.659f, 0.50f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -62,6 +68,12 @@ namespace Tetris.Gameplay.Rendering
         private void RestoreLegacyBoardBackground()
         {
             boardBackgroundColor = LegacyBoardBackgroundColor;
+            boardFrameColor = LegacyBoardFrameColor;
+            boardOuterGlowColor = LegacyBoardOuterGlowColor;
+            boardGridColor = LegacyBoardGridColor;
+            boardCellToneA = LegacyBoardCellToneA;
+            boardCellToneB = LegacyBoardCellToneB;
+            boardCellBorderColor = LegacyBoardCellBorderColor;
         }
 
         public void Render(BoardModel board, ActivePieceState? activePiece, ActivePieceState? ghostPiece)
