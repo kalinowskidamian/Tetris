@@ -135,8 +135,9 @@ namespace Tetris.Gameplay.Rendering
 
         private static void ConfigureZoneRect(RectTransform zone)
         {
-            zone.anchorMin = Vector2.zero;
-            zone.anchorMax = Vector2.zero;
+            var centeredAnchor = new Vector2(0.5f, 0.5f);
+            zone.anchorMin = centeredAnchor;
+            zone.anchorMax = centeredAnchor;
             zone.pivot = new Vector2(0.5f, 0.5f);
             zone.anchoredPosition = Vector2.zero;
             zone.sizeDelta = Vector2.zero;
