@@ -9,15 +9,15 @@ namespace Tetris.Gameplay.Rendering
     [RequireComponent(typeof(RectTransform))]
     public sealed class GameplayBoardRenderer : MonoBehaviour
     {
-        [SerializeField, Range(0f, 0.45f)] private float cellPaddingRatio = 0.08f;
-        [SerializeField, Range(0f, 3f)] private float visibleTopPaddingRows = 0.9f;
+        [SerializeField, Range(0f, 0.45f)] private float cellPaddingRatio = 0.07f;
+        [SerializeField, Range(0f, 3f)] private float visibleTopPaddingRows = 1.9f;
         [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 10f;
         [SerializeField, Range(0f, 28f)] private float boardOuterGlowThickness = 18f;
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
-        [SerializeField] private Color boardGridColor = new(0.24f, 0.52f, 0.72f, 0.11f);
-        [SerializeField, Range(0.5f, 2.5f)] private float gridLineThickness = 1f;
+        [SerializeField] private Color boardGridColor = new(0.26f, 0.63f, 0.85f, 0.32f);
+        [SerializeField, Range(0.5f, 2.5f)] private float gridLineThickness = 1.35f;
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -35,6 +35,8 @@ namespace Tetris.Gameplay.Rendering
         private Image boardOuterGlow;
         private readonly List<Image> gridLines = new();
         private float lineClearPulse;
+        private float lineClearRowsPulse;
+        private readonly HashSet<int> highlightedRows = new();
 
         private void Awake()
         {
@@ -109,6 +111,7 @@ namespace Tetris.Gameplay.Rendering
             var pulse = Mathf.Clamp01(lineClearPulse);
             boardBackground.color = Color.Lerp(boardBackgroundColor, new Color(0.35f, 0.8f, 1f, 0.34f), pulse);
             boardFrame.color = Color.Lerp(boardFrameColor, new Color(0.35f, 0.95f, 1f, 0.96f), pulse);
+            boardOuterGlow.color = Color.Lerp(boardOuterGlowColor, new Color(0.28f, 0.85f, 1f, 0.42f), pulse);
             SetRect(boardBackground.rectTransform, boardRect.center, boardRect.size);
             SetRect(boardFrame.rectTransform, boardRect.center, boardRect.size + framePadding * 2f);
         }
@@ -118,15 +121,29 @@ namespace Tetris.Gameplay.Rendering
             lineClearPulse = Mathf.Clamp01(Mathf.Max(lineClearPulse, intensity));
         }
 
-        private void UpdateLineClearPulse()
+        public void TriggerLineClearRows(IReadOnlyList<int> rows, float intensity)
         {
-            if (lineClearPulse <= 0f)
+            highlightedRows.Clear();
+            if (rows != null)
             {
-                lineClearPulse = 0f;
-                return;
+                for (var i = 0; i < rows.Count; i++)
+                {
+                    highlightedRows.Add(rows[i]);
+                }
             }
 
+            lineClearRowsPulse = Mathf.Clamp01(Mathf.Max(lineClearRowsPulse, intensity));
+        }
+
+        private void UpdateLineClearPulse()
+        {
             lineClearPulse = Mathf.Max(0f, lineClearPulse - Time.deltaTime * 4.8f);
+            lineClearRowsPulse = Mathf.Max(0f, lineClearRowsPulse - Time.deltaTime * 8.5f);
+
+            if (lineClearRowsPulse <= 0f)
+            {
+                highlightedRows.Clear();
+            }
         }
 
         private void RenderGrid(BoardModel board, BoardMetrics metrics)
@@ -139,7 +156,7 @@ namespace Tetris.Gameplay.Rendering
             {
                 var line = gridLines[index++];
                 line.gameObject.SetActive(true);
-                line.color = boardGridColor;
+                line.color = new Color(boardGridColor.r, boardGridColor.g, boardGridColor.b, boardGridColor.a * 0.95f);
                 var rect = line.rectTransform;
                 rect.sizeDelta = new Vector2(gridLineThickness, metrics.BoardRect.height);
                 rect.anchoredPosition = new Vector2(metrics.BoardRect.xMin + (x * metrics.CellStep), metrics.BoardRect.center.y);
@@ -149,7 +166,7 @@ namespace Tetris.Gameplay.Rendering
             {
                 var line = gridLines[index++];
                 line.gameObject.SetActive(true);
-                line.color = boardGridColor;
+                line.color = new Color(boardGridColor.r, boardGridColor.g, boardGridColor.b, boardGridColor.a * 1.08f);
                 var rect = line.rectTransform;
                 rect.sizeDelta = new Vector2(metrics.BoardRect.width, gridLineThickness);
                 rect.anchoredPosition = new Vector2(metrics.BoardRect.center.x, metrics.BoardRect.yMin + (y * metrics.CellStep));
@@ -200,7 +217,7 @@ namespace Tetris.Gameplay.Rendering
                     }
 
                     var block = blocks[index++];
-                    SetupBlock(block, x, y, GetPieceColor(pieceId.Value), metrics);
+                    SetupBlock(block, x, y, GetBoardCellColor(GetPieceColor(pieceId.Value), y), metrics);
                 }
             }
 
@@ -253,6 +270,20 @@ namespace Tetris.Gameplay.Rendering
             }
 
             return index;
+        }
+
+        private Color GetBoardCellColor(Color baseColor, int row)
+        {
+            if (!highlightedRows.Contains(row))
+            {
+                return baseColor;
+            }
+
+            var blink = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 70f));
+            var flash = Mathf.Clamp01(lineClearRowsPulse * 1.4f) * Mathf.Lerp(0.65f, 1f, blink);
+            var energized = Color.Lerp(baseColor, Color.white, flash);
+            energized.a = Mathf.Lerp(baseColor.a, 1f, flash);
+            return energized;
         }
 
         private void SetupBlock(Image block, int x, int y, Color color, BoardMetrics metrics)

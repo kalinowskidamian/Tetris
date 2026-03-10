@@ -26,4 +26,4 @@ The setup action is designed to be safe to run repeatedly:
 
 ## Current PR Note
 - Yes, rerun `Tools/Tetris/Apply Initial Project Setup` after pulling this change.
-- This PR updates generated Gameplay HUD anchors to include `HoldPiecePreviewAnchor` and tighter score/hold/next panel sizing, so scene regeneration is required for clean alignment.
+- This PR updates generated Gameplay scene anchors (smaller HUD band, taller board zone, and tighter score/hold/next panel spacing) and expects regenerated scene layout for clean alignment.
