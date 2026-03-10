@@ -36,6 +36,9 @@ namespace Tetris.Gameplay
         private GameplayBoardRenderer boardRenderer;
         private GameplayHudRenderer hudRenderer;
         private GameplaySideNeonRenderer sideNeonRenderer;
+        private RectTransform gameplayLayoutRect;
+        private RectTransform gameplayDarkBackdropRect;
+        private RectTransform gameplayNeonWashRect;
         private float gravityTimer;
         private float lockDelayTimer;
         private bool isPaused;
@@ -68,13 +71,12 @@ namespace Tetris.Gameplay
             var gameplayLayoutRoot = FindFirstObjectByType<GameplayLayoutRoot>();
             if (gameplayLayoutRoot != null)
             {
+                gameplayLayoutRect = gameplayLayoutRoot.GetComponent<RectTransform>();
                 sideNeonRenderer = gameplayLayoutRoot.GetComponent<GameplaySideNeonRenderer>();
                 if (sideNeonRenderer == null)
                 {
                     sideNeonRenderer = gameplayLayoutRoot.gameObject.AddComponent<GameplaySideNeonRenderer>();
                 }
-
-                sideNeonRenderer.BindBoardRect(boardAnchor.GetComponent<RectTransform>());
             }
 
             var hudRootRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
@@ -92,6 +94,7 @@ namespace Tetris.Gameplay
                 ToggleEffectsIntensity,
                 ReturnToMenuIfAvailable);
             ApplyBackdropChrome();
+            BindSideNeonLayout();
             ConfigureInputRouting();
         }
 
@@ -375,16 +378,36 @@ namespace Tetris.Gameplay
             return gameplayRuntime.ResolvePendingLineClear();
         }
 
+        private void BindSideNeonLayout()
+        {
+            if (sideNeonRenderer == null)
+            {
+                return;
+            }
+
+            var boardRect = boardAnchor != null ? boardAnchor.GetComponent<RectTransform>() : null;
+            var hudRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
+            var layoutRect = gameplayLayoutRect;
+            if (layoutRect == null && boardRect != null)
+            {
+                layoutRect = boardRect.parent as RectTransform;
+            }
+
+            sideNeonRenderer.BindLayout(layoutRect, boardRect, hudRect, gameplayDarkBackdropRect, gameplayNeonWashRect);
+        }
+
         private void ApplyBackdropChrome()
         {
-            var boardRoot = boardAnchor.GetComponent<RectTransform>().parent as RectTransform;
+            var boardRoot = gameplayLayoutRect != null
+                ? gameplayLayoutRect
+                : boardAnchor.GetComponent<RectTransform>().parent as RectTransform;
             if (boardRoot == null)
             {
                 return;
             }
 
-            EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0);
-            EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1);
+            gameplayDarkBackdropRect = EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0).rectTransform;
+            gameplayNeonWashRect = EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1).rectTransform;
             RemoveLegacyDecorativeBackdropRoot(boardRoot);
             var lineClearOverlay = boardRoot.Find("LineClearOverlay");
             if (lineClearOverlay != null)

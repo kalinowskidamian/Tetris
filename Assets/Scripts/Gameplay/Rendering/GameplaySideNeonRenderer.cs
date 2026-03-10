@@ -8,7 +8,11 @@ namespace Tetris.Gameplay.Rendering
     [RequireComponent(typeof(RectTransform))]
     public sealed class GameplaySideNeonRenderer : MonoBehaviour
     {
+        [SerializeField] private RectTransform layoutContainerRect;
         [SerializeField] private RectTransform boardRect;
+        [SerializeField] private RectTransform hudRect;
+        [SerializeField] private RectTransform darkBackdropRect;
+        [SerializeField] private RectTransform neonWashRect;
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
         [SerializeField, Range(2f, 30f)] private float railWidth = 11f;
         [SerializeField, Range(0.2f, 0.95f)] private float railHeightFactor = 0.9f;
@@ -23,13 +27,11 @@ namespace Tetris.Gameplay.Rendering
 
         private const int SegmentCountPerSide = 5;
 
-        private RectTransform rootRect;
         private RectTransform leftZone;
         private RectTransform rightZone;
         private Sprite neonSprite;
         private SideDecor leftDecor;
         private SideDecor rightDecor;
-        private HUDLayoutAnchor hudAnchor;
 
         private sealed class SideDecor
         {
@@ -40,9 +42,14 @@ namespace Tetris.Gameplay.Rendering
 
         private void Awake()
         {
-            rootRect = (RectTransform)transform;
             neonSprite = CreateNeonSprite();
-            hudAnchor = GetComponentInChildren<HUDLayoutAnchor>(true);
+            layoutContainerRect ??= transform as RectTransform;
+            if (hudRect == null)
+            {
+                var anchor = FindFirstObjectByType<HUDLayoutAnchor>();
+                hudRect = anchor != null ? anchor.GetComponent<RectTransform>() : null;
+            }
+
             EnsureZones();
             EnsureSiblingOrder();
         }
@@ -66,6 +73,17 @@ namespace Tetris.Gameplay.Rendering
             boardRect = targetBoardRect;
         }
 
+        public void BindLayout(RectTransform container, RectTransform board, RectTransform hud, RectTransform darkBackdrop, RectTransform neonWash)
+        {
+            layoutContainerRect = container;
+            boardRect = board;
+            hudRect = hud;
+            darkBackdropRect = darkBackdrop;
+            neonWashRect = neonWash;
+            EnsureZones();
+            EnsureSiblingOrder();
+        }
+
         private void EnsureZones()
         {
             DestroyLegacyDecorRootIfPresent();
@@ -78,12 +96,19 @@ namespace Tetris.Gameplay.Rendering
 
         private RectTransform EnsureZoneContainer(string name, RectTransform existing)
         {
+            var parent = layoutContainerRect != null ? layoutContainerRect : transform as RectTransform;
             if (existing != null)
             {
+                if (existing.parent != parent)
+                {
+                    existing.SetParent(parent, false);
+                }
+
+                ConfigureZoneRect(existing);
                 return existing;
             }
 
-            var fromHierarchy = transform.Find(name) as RectTransform;
+            var fromHierarchy = parent != null ? FindDirectChildRect(parent, name) : null;
             if (fromHierarchy != null)
             {
                 ConfigureZoneRect(fromHierarchy);
@@ -91,7 +116,7 @@ namespace Tetris.Gameplay.Rendering
             }
 
             var zone = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            zone.SetParent(transform, false);
+            zone.SetParent(parent, false);
             ConfigureZoneRect(zone);
             return zone;
         }
@@ -140,40 +165,58 @@ namespace Tetris.Gameplay.Rendering
 
         private void EnsureSiblingOrder()
         {
-            var darkBackdrop = transform.Find("GameplayDarkBackdrop");
-            var neonWash = transform.Find("GameplayNeonWash");
-            var board = boardRect != null ? boardRect.parent : null;
-            var hud = hudAnchor != null ? hudAnchor.transform : transform.Find("HUDRoot");
+            var parent = layoutContainerRect != null ? layoutContainerRect : transform as RectTransform;
+            if (parent == null || leftZone == null || rightZone == null)
+            {
+                return;
+            }
+
+            if (leftZone.parent != parent)
+            {
+                leftZone.SetParent(parent, false);
+            }
+
+            if (rightZone.parent != parent)
+            {
+                rightZone.SetParent(parent, false);
+            }
 
             var targetIndex = 0;
-            if (darkBackdrop != null)
+            if (darkBackdropRect != null && darkBackdropRect.parent == parent)
             {
-                targetIndex = Mathf.Max(targetIndex, darkBackdrop.GetSiblingIndex() + 1);
+                targetIndex = Mathf.Max(targetIndex, darkBackdropRect.GetSiblingIndex() + 1);
             }
 
-            if (neonWash != null)
+            if (neonWashRect != null && neonWashRect.parent == parent)
             {
-                targetIndex = Mathf.Max(targetIndex, neonWash.GetSiblingIndex() + 1);
+                targetIndex = Mathf.Max(targetIndex, neonWashRect.GetSiblingIndex() + 1);
             }
 
-            if (board != null)
+            if (boardRect != null && boardRect.parent == parent)
             {
-                targetIndex = Mathf.Min(targetIndex, board.GetSiblingIndex());
+                targetIndex = Mathf.Min(targetIndex, boardRect.GetSiblingIndex());
             }
 
-            if (hud != null)
+            if (hudRect != null && hudRect.parent == parent)
             {
-                targetIndex = Mathf.Min(targetIndex, hud.GetSiblingIndex());
+                targetIndex = Mathf.Min(targetIndex, hudRect.GetSiblingIndex());
             }
 
-            leftZone.SetSiblingIndex(Mathf.Clamp(targetIndex, 0, transform.childCount - 1));
-            rightZone.SetSiblingIndex(Mathf.Clamp(leftZone.GetSiblingIndex() + 1, 0, transform.childCount - 1));
+            leftZone.SetSiblingIndex(Mathf.Clamp(targetIndex, 0, parent.childCount - 1));
+            rightZone.SetSiblingIndex(Mathf.Clamp(leftZone.GetSiblingIndex() + 1, 0, parent.childCount - 1));
         }
 
         private void RenderSideDecor()
         {
-            var rootBounds = rootRect.rect;
-            var boardBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(rootRect, boardRect);
+            if (layoutContainerRect == null || boardRect == null)
+            {
+                SetZoneActive(leftZone, false);
+                SetZoneActive(rightZone, false);
+                return;
+            }
+
+            var rootBounds = layoutContainerRect.rect;
+            var boardBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, boardRect);
             var hudBounds = ResolveHudBounds();
             var topLimit = hudBounds.HasValue ? Mathf.Min(rootBounds.yMax - zoneInset, hudBounds.Value.yMin - zoneInset) : rootBounds.yMax - zoneInset;
             var bottomLimit = Mathf.Max(rootBounds.yMin + zoneInset, boardBounds.min.y + zoneInset);
@@ -195,18 +238,12 @@ namespace Tetris.Gameplay.Rendering
 
         private Rect? ResolveHudBounds()
         {
-            if (hudAnchor == null)
+            if (hudRect == null || layoutContainerRect == null)
             {
                 return null;
             }
 
-            var hudRect = hudAnchor.GetComponent<RectTransform>();
-            if (hudRect == null)
-            {
-                return null;
-            }
-
-            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(rootRect, hudRect);
+            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, hudRect);
             return new Rect(bounds.min.x, bounds.min.y, bounds.size.x, bounds.size.y);
         }
 
@@ -285,11 +322,25 @@ namespace Tetris.Gameplay.Rendering
 
         private void DestroyLegacyDecorRootIfPresent()
         {
-            var legacy = transform.Find("SideNeonDecorRoot");
+            var parent = layoutContainerRect != null ? layoutContainerRect : transform as RectTransform;
+            var legacy = parent != null ? FindDirectChildRect(parent, "SideNeonDecorRoot") : null;
             if (legacy != null)
             {
                 Destroy(legacy.gameObject);
             }
+        }
+
+        private static RectTransform FindDirectChildRect(RectTransform parent, string name)
+        {
+            for (var i = 0; i < parent.childCount; i++)
+            {
+                if (parent.GetChild(i).name == name)
+                {
+                    return parent.GetChild(i) as RectTransform;
+                }
+            }
+
+            return null;
         }
 
         private static void Place(RectTransform rect, Vector2 center, Vector2 size)
