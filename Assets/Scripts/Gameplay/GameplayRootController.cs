@@ -393,7 +393,7 @@ namespace Tetris.Gameplay
                 layoutRect = boardRect.parent as RectTransform;
             }
 
-            sideNeonRenderer.BindLayout(layoutRect, boardRect, hudRect, gameplayDarkBackdropRect, gameplayNeonWashRect);
+            sideNeonRenderer.BindLayout(layoutRect, boardRect, hudRect, gameplayDarkBackdropRect, gameplayNeonWashRect, boardRenderer);
         }
 
         private void ApplyBackdropChrome()

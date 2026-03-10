@@ -46,6 +46,8 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField, Range(2f, 24f)] private float lineClearBlinkFrequency = 12f;
         [SerializeField, Range(0f, 0.5f)] private float lineClearEndFadeFraction = 0.30f;
         [SerializeField] private Color lineClearEnergizedColor = new(0.88f, 0.97f, 1f, 1f);
+        private Rect visibleBoardRectLocal;
+        private bool hasVisibleBoardRect;
 
         private void Awake()
         {
@@ -62,6 +64,8 @@ namespace Tetris.Gameplay.Rendering
             }
 
             var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio, visibleTopPaddingRows);
+            visibleBoardRectLocal = metrics.BoardRect;
+            hasVisibleBoardRect = true;
             UpdateBoardChrome(metrics);
             RenderCellBackgrounds(board, metrics);
             RenderGrid(board, metrics);
@@ -80,6 +84,36 @@ namespace Tetris.Gameplay.Rendering
             {
                 blocks[i].gameObject.SetActive(false);
             }
+        }
+
+        public bool TryGetVisibleBoardBounds(RectTransform targetSpace, out Rect bounds)
+        {
+            bounds = default;
+            if (!hasVisibleBoardRect || rootRect == null || targetSpace == null)
+            {
+                return false;
+            }
+
+            var localCorners = new[]
+            {
+                new Vector3(visibleBoardRectLocal.xMin, visibleBoardRectLocal.yMin, 0f),
+                new Vector3(visibleBoardRectLocal.xMin, visibleBoardRectLocal.yMax, 0f),
+                new Vector3(visibleBoardRectLocal.xMax, visibleBoardRectLocal.yMax, 0f),
+                new Vector3(visibleBoardRectLocal.xMax, visibleBoardRectLocal.yMin, 0f)
+            };
+
+            var min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            for (var i = 0; i < localCorners.Length; i++)
+            {
+                var world = rootRect.TransformPoint(localCorners[i]);
+                var inTarget = targetSpace.InverseTransformPoint(world);
+                min = Vector2.Min(min, inTarget);
+                max = Vector2.Max(max, inTarget);
+            }
+
+            bounds = Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            return true;
         }
 
         private void EnsureBoardChrome()
