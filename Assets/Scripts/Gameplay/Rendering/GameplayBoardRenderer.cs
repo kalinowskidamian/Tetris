@@ -16,13 +16,14 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
-        [SerializeField, Range(10f, 180f)] private float neonRailOffset = 54f;
-        [SerializeField, Range(2f, 20f)] private float neonRailWidth = 8f;
-        [SerializeField, Range(18f, 160f)] private float neonSegmentHeight = 52f;
-        [SerializeField, Range(16f, 180f)] private float neonSegmentTravel = 70f;
-        [SerializeField] private Color neonRailColor = new(0.16f, 0.88f, 1f, 0.18f);
-        [SerializeField] private Color neonRailGlowColor = new(0.68f, 0.35f, 1f, 0.11f);
-        [SerializeField] private Color neonSegmentColor = new(0.72f, 0.95f, 1f, 0.24f);
+        [SerializeField, Range(10f, 180f)] private float neonRailOffset = 46f;
+        [SerializeField, Range(2f, 20f)] private float neonRailWidth = 7f;
+        [SerializeField, Range(12f, 80f)] private float neonAccentHeight = 34f;
+        [SerializeField, Range(4f, 48f)] private float neonAccentTravel = 14f;
+        [SerializeField, Range(0.1f, 3.5f)] private float neonAnimationSpeed = 1.2f;
+        [SerializeField] private Color neonRailColor = new(0.16f, 0.88f, 1f, 0.16f);
+        [SerializeField] private Color neonRailGlowColor = new(0.68f, 0.35f, 1f, 0.10f);
+        [SerializeField] private Color neonSegmentColor = new(0.72f, 0.95f, 1f, 0.22f);
         [SerializeField] private Color boardGridColor = new(0.35f, 0.82f, 1f, 0.56f);
         [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
         [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.17f, 0.58f);
@@ -48,14 +49,14 @@ namespace Tetris.Gameplay.Rendering
         private Image rightRail;
         private Image leftInnerGlow;
         private Image rightInnerGlow;
-        private Image leftSegment;
-        private Image rightSegment;
+        private readonly List<Image> leftAccents = new();
+        private readonly List<Image> rightAccents = new();
         private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
         private readonly List<Image> lineClearEffectBlocks = new();
         private float lineClearPulse;
         private float lineClearRowsPulse;
-        private readonly List<LineClearCellSnapshot> lineClearSnapshots = new();
+        private readonly List<int> lineClearRows = new();
 
         private void Awake()
         {
@@ -154,12 +155,25 @@ namespace Tetris.Gameplay.Rendering
             neonDecorRoot.anchorMax = Vector2.zero;
             neonDecorRoot.pivot = new Vector2(0.5f, 0.5f);
 
+            RemoveLegacyDecorImage("LeftSegment");
+            RemoveLegacyDecorImage("RightSegment");
+
             leftRail = EnsureDecorImage(neonDecorRoot, "LeftRail", neonRailColor);
             rightRail = EnsureDecorImage(neonDecorRoot, "RightRail", neonRailColor);
             leftInnerGlow = EnsureDecorImage(neonDecorRoot, "LeftInnerGlow", neonRailGlowColor);
             rightInnerGlow = EnsureDecorImage(neonDecorRoot, "RightInnerGlow", neonRailGlowColor);
-            leftSegment = EnsureDecorImage(neonDecorRoot, "LeftSegment", neonSegmentColor);
-            rightSegment = EnsureDecorImage(neonDecorRoot, "RightSegment", neonSegmentColor);
+            EnsureAccentPool(leftAccents, "LeftAccent", 3, neonSegmentColor);
+            EnsureAccentPool(rightAccents, "RightAccent", 3, neonSegmentColor);
+        }
+
+
+        private void RemoveLegacyDecorImage(string name)
+        {
+            var legacy = neonDecorRoot.Find(name);
+            if (legacy != null)
+            {
+                Destroy(legacy.gameObject);
+            }
         }
 
         private Image EnsureDecorImage(RectTransform parent, string name, Color color)
@@ -179,6 +193,15 @@ namespace Tetris.Gameplay.Rendering
             return image;
         }
 
+
+        private void EnsureAccentPool(List<Image> target, string prefix, int count, Color color)
+        {
+            while (target.Count < count)
+            {
+                target.Add(EnsureDecorImage(neonDecorRoot, $"{prefix}_{target.Count}", color));
+            }
+        }
+
         private void UpdateNeonDecor(BoardMetrics metrics, float lineClearPulseAmount)
         {
             if (neonDecorRoot == null)
@@ -190,26 +213,56 @@ namespace Tetris.Gameplay.Rendering
             neonDecorRoot.anchoredPosition = Vector2.zero;
             neonDecorRoot.sizeDelta = rootRect.rect.size;
 
-            var railHeight = Mathf.Max(24f, boardRect.height * 0.88f);
+            var railHeight = Mathf.Max(24f, boardRect.height * 0.9f);
             var railCenterY = boardRect.center.y;
-            var basePulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 1.55f));
-            var segmentWave = Mathf.Sin(Time.unscaledTime * 1.9f);
-            var segmentOffset = segmentWave * neonSegmentTravel;
+            var time = Time.unscaledTime * neonAnimationSpeed;
+            var basePulse = 0.5f + (0.5f * Mathf.Sin(time * 1.4f));
 
             PlaceDecorStrip(leftRail.rectTransform, new Vector2(boardRect.xMin - neonRailOffset, railCenterY), new Vector2(neonRailWidth, railHeight));
             PlaceDecorStrip(rightRail.rectTransform, new Vector2(boardRect.xMax + neonRailOffset, railCenterY), new Vector2(neonRailWidth, railHeight));
-            PlaceDecorStrip(leftInnerGlow.rectTransform, new Vector2(boardRect.xMin - (neonRailOffset * 0.66f), railCenterY), new Vector2(neonRailWidth * 0.75f, railHeight * 0.78f));
-            PlaceDecorStrip(rightInnerGlow.rectTransform, new Vector2(boardRect.xMax + (neonRailOffset * 0.66f), railCenterY), new Vector2(neonRailWidth * 0.75f, railHeight * 0.78f));
-            PlaceDecorStrip(leftSegment.rectTransform, new Vector2(boardRect.xMin - neonRailOffset, railCenterY + segmentOffset), new Vector2(neonRailWidth * 1.7f, neonSegmentHeight));
-            PlaceDecorStrip(rightSegment.rectTransform, new Vector2(boardRect.xMax + neonRailOffset, railCenterY - segmentOffset), new Vector2(neonRailWidth * 1.7f, neonSegmentHeight));
+            PlaceDecorStrip(leftInnerGlow.rectTransform, new Vector2(boardRect.xMin - (neonRailOffset * 0.72f), railCenterY), new Vector2(neonRailWidth * 0.85f, railHeight * 0.82f));
+            PlaceDecorStrip(rightInnerGlow.rectTransform, new Vector2(boardRect.xMax + (neonRailOffset * 0.72f), railCenterY), new Vector2(neonRailWidth * 0.85f, railHeight * 0.82f));
 
-            var pulseBoost = Mathf.Lerp(0f, 0.14f, lineClearPulseAmount);
-            leftRail.color = WithAlpha(neonRailColor, 0.11f + (0.09f * basePulse) + pulseBoost);
-            rightRail.color = WithAlpha(neonRailColor, 0.11f + (0.09f * (1f - basePulse)) + pulseBoost);
-            leftInnerGlow.color = WithAlpha(neonRailGlowColor, 0.08f + (0.06f * basePulse) + (pulseBoost * 0.8f));
-            rightInnerGlow.color = WithAlpha(neonRailGlowColor, 0.08f + (0.06f * (1f - basePulse)) + (pulseBoost * 0.8f));
-            leftSegment.color = WithAlpha(neonSegmentColor, 0.12f + (0.14f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.4f))) + pulseBoost);
-            rightSegment.color = WithAlpha(neonSegmentColor, 0.12f + (0.14f * (0.5f + 0.5f * Mathf.Sin((Time.unscaledTime * 2.4f) + 1.2f))) + pulseBoost);
+            var pulseBoost = Mathf.Lerp(0f, 0.12f, lineClearPulseAmount);
+            leftRail.color = WithAlpha(neonRailColor, 0.09f + (0.08f * basePulse) + pulseBoost);
+            rightRail.color = WithAlpha(neonRailColor, 0.09f + (0.08f * (1f - basePulse)) + pulseBoost);
+            leftInnerGlow.color = WithAlpha(neonRailGlowColor, 0.07f + (0.05f * basePulse) + (pulseBoost * 0.6f));
+            rightInnerGlow.color = WithAlpha(neonRailGlowColor, 0.07f + (0.05f * (1f - basePulse)) + (pulseBoost * 0.6f));
+
+            UpdateAccentStrips(leftAccents, boardRect.xMin - neonRailOffset, boardRect, time, pulseBoost, false);
+            UpdateAccentStrips(rightAccents, boardRect.xMax + neonRailOffset, boardRect, time, pulseBoost, true);
+        }
+
+
+
+        private void UpdateAccentStrips(List<Image> accents, float xPosition, Rect boardRect, float time, float pulseBoost, bool reverseMotion)
+        {
+            if (accents.Count == 0)
+            {
+                return;
+            }
+
+            var availableHeight = boardRect.height * 0.76f;
+            var startY = boardRect.center.y - (availableHeight * 0.5f);
+            var spacing = accents.Count > 1 ? availableHeight / (accents.Count - 1) : 0f;
+
+            for (var i = 0; i < accents.Count; i++)
+            {
+                var accent = accents[i];
+                var phase = time * 1.8f + (i * 0.9f);
+                var travel = Mathf.Sin(phase) * neonAccentTravel;
+                if (reverseMotion)
+                {
+                    travel *= -1f;
+                }
+
+                var centerY = startY + (spacing * i) + travel;
+                centerY = Mathf.Clamp(centerY, boardRect.yMin + (neonAccentHeight * 0.5f), boardRect.yMax - (neonAccentHeight * 0.5f));
+                PlaceDecorStrip(accent.rectTransform, new Vector2(xPosition, centerY), new Vector2(neonRailWidth * 1.55f, neonAccentHeight));
+
+                var alphaWave = 0.5f + (0.5f * Mathf.Sin((time * 2.5f) + (i * 0.8f)));
+                accent.color = WithAlpha(neonSegmentColor, 0.1f + (0.1f * alphaWave) + (pulseBoost * 0.85f));
+            }
         }
 
         private static void PlaceDecorStrip(RectTransform rect, Vector2 center, Vector2 size)
@@ -234,17 +287,12 @@ namespace Tetris.Gameplay.Rendering
 
         public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity)
         {
-            lineClearSnapshots.Clear();
+            lineClearRows.Clear();
             if (rows != null)
             {
                 for (var i = 0; i < rows.Count; i++)
                 {
-                    var row = rows[i];
-                    for (var x = 0; x < row.Cells.Count; x++)
-                    {
-                        var color = GetLockedCellColor(GetPieceColor(row.Cells[x]));
-                        lineClearSnapshots.Add(new LineClearCellSnapshot(x, row.Row, color));
-                    }
+                    lineClearRows.Add(rows[i].Row);
                 }
             }
 
@@ -258,7 +306,7 @@ namespace Tetris.Gameplay.Rendering
 
             if (lineClearRowsPulse <= 0f)
             {
-                lineClearSnapshots.Clear();
+                lineClearRows.Clear();
             }
         }
 
@@ -467,33 +515,33 @@ namespace Tetris.Gameplay.Rendering
 
         private void RenderLineClearEffect(BoardMetrics metrics)
         {
-            EnsureLineClearEffectPool(lineClearSnapshots.Count);
+            EnsureLineClearEffectPool(lineClearRows.Count);
 
-            var flashPulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 88f));
-            var flashAmount = Mathf.Clamp01(lineClearRowsPulse * 1.6f) * Mathf.Lerp(0.75f, 1f, flashPulse);
-            for (var i = 0; i < lineClearSnapshots.Count; i++)
+            var flashPulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 66f));
+            var flashAmount = Mathf.Clamp01(lineClearRowsPulse * 1.5f) * Mathf.Lerp(0.7f, 1f, flashPulse);
+            var edgeColor = new Color(0.62f, 0.96f, 1f, 1f);
+            for (var i = 0; i < lineClearRows.Count; i++)
             {
-                var snapshot = lineClearSnapshots[i];
+                var row = lineClearRows[i];
                 var effectBlock = lineClearEffectBlocks[i];
                 effectBlock.gameObject.SetActive(true);
 
-                var flashColor = Color.Lerp(snapshot.Color, Color.white, flashAmount);
-                flashColor.a = Mathf.Lerp(snapshot.Color.a, 1f, flashAmount);
-                SetupLineClearEffectBlock(effectBlock, snapshot.X, snapshot.Y, flashColor, metrics);
+                var flashColor = Color.Lerp(new Color(edgeColor.r, edgeColor.g, edgeColor.b, 0f), edgeColor, flashAmount);
+                SetupLineClearEffectRow(effectBlock, row, flashColor, metrics);
             }
 
-            for (var i = lineClearSnapshots.Count; i < lineClearEffectBlocks.Count; i++)
+            for (var i = lineClearRows.Count; i < lineClearEffectBlocks.Count; i++)
             {
                 lineClearEffectBlocks[i].gameObject.SetActive(false);
             }
         }
 
-        private void SetupLineClearEffectBlock(Image block, int x, int y, Color color, BoardMetrics metrics)
+        private void SetupLineClearEffectRow(Image block, int row, Color color, BoardMetrics metrics)
         {
             block.color = color;
             var rect = block.rectTransform;
-            rect.anchoredPosition = metrics.GetCellPosition(x, y);
-            rect.sizeDelta = metrics.CellSize;
+            rect.anchoredPosition = new Vector2(metrics.BoardRect.center.x, metrics.GetCellPosition(0, row).y);
+            rect.sizeDelta = new Vector2(metrics.BoardRect.width, metrics.CellSize.y * 0.72f);
         }
 
         private int CountBoardCells(BoardModel board)
@@ -564,7 +612,7 @@ namespace Tetris.Gameplay.Rendering
             {
                 var block = new GameObject($"LineClearEffect_{lineClearEffectBlocks.Count}", typeof(RectTransform), typeof(Image));
                 block.transform.SetParent(transform, false);
-                block.transform.SetAsLastSibling();
+                block.transform.SetSiblingIndex(4);
 
                 var rect = (RectTransform)block.transform;
                 rect.anchorMin = new Vector2(0f, 0f);
@@ -577,20 +625,6 @@ namespace Tetris.Gameplay.Rendering
                 image.raycastTarget = false;
                 lineClearEffectBlocks.Add(image);
             }
-        }
-
-        private readonly struct LineClearCellSnapshot
-        {
-            public LineClearCellSnapshot(int x, int y, Color color)
-            {
-                X = x;
-                Y = y;
-                Color = color;
-            }
-
-            public int X { get; }
-            public int Y { get; }
-            public Color Color { get; }
         }
 
         private static Sprite CreateBlockSprite()
