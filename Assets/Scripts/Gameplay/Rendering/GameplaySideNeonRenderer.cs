@@ -26,6 +26,15 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color segmentPurple = new(0.62f, 0.47f, 1f, 0.34f);
 
         private const int SegmentCountPerSide = 5;
+        private const float MinRenderableWidth = 3f;
+        private const float MinRenderableHeight = 18f;
+
+        private enum ZoneRenderMode
+        {
+            Minimal,
+            Medium,
+            Full
+        }
 
         private RectTransform leftZone;
         private RectTransform rightZone;
@@ -218,16 +227,22 @@ namespace Tetris.Gameplay.Rendering
             var rootBounds = layoutContainerRect.rect;
             var boardBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(layoutContainerRect, boardRect);
             var hudBounds = ResolveHudBounds();
-            var topLimit = hudBounds.HasValue ? Mathf.Min(rootBounds.yMax - zoneInset, hudBounds.Value.yMin - zoneInset) : rootBounds.yMax - zoneInset;
-            var bottomLimit = Mathf.Max(rootBounds.yMin + zoneInset, boardBounds.min.y + zoneInset);
-            var boardTopLimit = boardBounds.max.y - zoneInset;
+            var verticalInset = ComputeAdaptiveInset(rootBounds.height);
+            var topLimit = hudBounds.HasValue ? Mathf.Min(rootBounds.yMax - verticalInset, hudBounds.Value.yMin - verticalInset) : rootBounds.yMax - verticalInset;
+            var bottomLimit = Mathf.Max(rootBounds.yMin + verticalInset, boardBounds.min.y + verticalInset);
+            var boardTopLimit = boardBounds.max.y - verticalInset;
             var zoneTop = Mathf.Min(topLimit, boardTopLimit);
             var zoneHeight = Mathf.Max(0f, zoneTop - bottomLimit);
 
-            var leftMin = rootBounds.xMin + zoneInset;
-            var leftMax = boardBounds.min.x - zoneInset;
-            var rightMin = boardBounds.max.x + zoneInset;
-            var rightMax = rootBounds.xMax - zoneInset;
+            var leftRawWidth = Mathf.Max(0f, boardBounds.min.x - rootBounds.xMin);
+            var rightRawWidth = Mathf.Max(0f, rootBounds.xMax - boardBounds.max.x);
+            var leftInset = ComputeAdaptiveInset(leftRawWidth);
+            var rightInset = ComputeAdaptiveInset(rightRawWidth);
+
+            var leftMin = rootBounds.xMin + leftInset;
+            var leftMax = boardBounds.min.x - leftInset;
+            var rightMin = boardBounds.max.x + rightInset;
+            var rightMax = rootBounds.xMax - rightInset;
 
             var leftRect = CreateZoneRect(leftMin, leftMax, bottomLimit, zoneHeight);
             var rightRect = CreateZoneRect(rightMin, rightMax, bottomLimit, zoneHeight);
@@ -260,7 +275,7 @@ namespace Tetris.Gameplay.Rendering
 
         private void RenderZone(RectTransform zoneRoot, SideDecor decor, Rect zoneRect, bool rightSide)
         {
-            var hasSpace = zoneRect.width > railWidth * 1.8f && zoneRect.height > minSegmentHeight * 2f;
+            var hasSpace = zoneRect.width >= MinRenderableWidth && zoneRect.height >= MinRenderableHeight;
             SetZoneActive(zoneRoot, hasSpace);
             if (!hasSpace)
             {
@@ -273,29 +288,46 @@ namespace Tetris.Gameplay.Rendering
             var t = Time.unscaledTime * animationSpeed;
             var pulse = 0.5f + (0.5f * Mathf.Sin((t * 1.6f) + (rightSide ? 1.15f : 0f)));
             var horizontalSign = rightSide ? -1f : 1f;
+            var mode = ResolveRenderMode(zoneRect.width);
+            var activeSegments = mode == ZoneRenderMode.Minimal ? 1 : mode == ZoneRenderMode.Medium ? 2 : SegmentCountPerSide;
 
-            var localRailX = ((zoneRect.width * 0.5f) - (zoneRect.width * 0.26f)) * horizontalSign;
-            var railHeight = zoneRect.height * railHeightFactor;
+            var outerRailWidth = ResolveRailWidth(zoneRect.width, mode);
+            var railPadding = Mathf.Max(outerRailWidth * 0.6f, zoneRect.width * 0.08f);
+            var localRailX = ((zoneRect.width * 0.5f) - railPadding) * horizontalSign;
+            var railHeight = zoneRect.height * (mode == ZoneRenderMode.Minimal ? Mathf.Clamp(railHeightFactor - 0.1f, 0.55f, 0.92f) : railHeightFactor);
 
-            Place(decor.OuterRail.rectTransform, new Vector2(localRailX, 0f), new Vector2(railWidth, railHeight));
-            Place(decor.InnerRail.rectTransform, new Vector2(localRailX + (horizontalSign * railWidth * 1.08f), 0f), new Vector2(railWidth * 0.6f, railHeight * 0.84f));
+            var innerRailWidth = Mathf.Max(1.25f, outerRailWidth * (mode == ZoneRenderMode.Full ? 0.62f : 0.5f));
+            var innerRailHeight = railHeight * (mode == ZoneRenderMode.Minimal ? 0.72f : 0.84f);
+            var innerRailOffset = horizontalSign * (outerRailWidth * 0.72f);
 
-            decor.OuterRail.color = WithAlpha(Color.Lerp(outerRailCyan, outerRailMagenta, pulse), 0.25f + (0.28f * pulse));
-            decor.InnerRail.color = WithAlpha(innerGlowBlue, 0.16f + (0.22f * (1f - pulse)));
+            decor.OuterRail.enabled = true;
+            decor.InnerRail.enabled = true;
+            Place(decor.OuterRail.rectTransform, new Vector2(localRailX, 0f), new Vector2(outerRailWidth, railHeight));
+            Place(decor.InnerRail.rectTransform, new Vector2(localRailX + innerRailOffset, 0f), new Vector2(innerRailWidth, innerRailHeight));
 
-            RenderSegments(decor.Segments, localRailX, zoneRect.size, t, rightSide);
+            decor.OuterRail.color = WithAlpha(Color.Lerp(outerRailCyan, outerRailMagenta, pulse), mode == ZoneRenderMode.Minimal ? 0.32f + (0.2f * pulse) : 0.25f + (0.28f * pulse));
+            decor.InnerRail.color = WithAlpha(innerGlowBlue, mode == ZoneRenderMode.Minimal ? 0.18f + (0.16f * (1f - pulse)) : 0.16f + (0.22f * (1f - pulse)));
+
+            RenderSegments(decor.Segments, localRailX, zoneRect.size, outerRailWidth, t, rightSide, activeSegments, mode);
         }
 
-        private void RenderSegments(List<Image> segments, float railX, Vector2 zoneSize, float timeValue, bool rightSide)
+        private void RenderSegments(List<Image> segments, float railX, Vector2 zoneSize, float resolvedRailWidth, float timeValue, bool rightSide, int activeCount, ZoneRenderMode mode)
         {
-            var segmentHeight = Mathf.Max(minSegmentHeight, zoneSize.y * segmentHeightFactor);
-            var movementSpan = Mathf.Max(10f, zoneSize.y * motionSpanFactor);
+            var visibleCount = Mathf.Clamp(activeCount, 0, segments.Count);
+            var segmentHeight = Mathf.Min(zoneSize.y * 0.42f, Mathf.Max(minSegmentHeight * (mode == ZoneRenderMode.Full ? 1f : 0.6f), zoneSize.y * segmentHeightFactor * (mode == ZoneRenderMode.Minimal ? 0.5f : 0.72f)));
+            var movementSpan = Mathf.Max(mode == ZoneRenderMode.Minimal ? 4f : 8f, zoneSize.y * motionSpanFactor * (mode == ZoneRenderMode.Full ? 1f : 0.5f));
             var laneHeight = Mathf.Max(1f, zoneSize.y - segmentHeight);
             var laneStart = (-zoneSize.y * 0.5f) + (segmentHeight * 0.5f);
-            var spacing = segments.Count > 1 ? laneHeight / (segments.Count - 1) : 0f;
+            var spacing = visibleCount > 1 ? laneHeight / (visibleCount - 1) : 0f;
 
-            for (var i = 0; i < segments.Count; i++)
+            for (var i = visibleCount; i < segments.Count; i++)
             {
+                segments[i].enabled = false;
+            }
+
+            for (var i = 0; i < visibleCount; i++)
+            {
+                segments[i].enabled = true;
                 var phase = (timeValue * 1.85f) + (i * 1.15f);
                 var travel = Mathf.Sin(phase) * movementSpan;
                 if (rightSide)
@@ -304,12 +336,36 @@ namespace Tetris.Gameplay.Rendering
                 }
 
                 var y = Mathf.Clamp(laneStart + (spacing * i) + travel, (-zoneSize.y * 0.5f) + (segmentHeight * 0.5f), (zoneSize.y * 0.5f) - (segmentHeight * 0.5f));
-                var width = railWidth * (1.5f + (0.26f * Mathf.Sin((timeValue * 3.15f) + i)));
+                var width = resolvedRailWidth * (mode == ZoneRenderMode.Minimal ? 1.16f : 1.3f + (0.2f * Mathf.Sin((timeValue * 3.15f) + i)));
                 Place(segments[i].rectTransform, new Vector2(railX, y), new Vector2(width, segmentHeight));
 
                 var wave = 0.5f + (0.5f * Mathf.Sin((timeValue * 3.4f) + (i * 0.85f)));
-                segments[i].color = WithAlpha(segmentPurple, 0.18f + (0.24f * wave));
+                var alpha = mode == ZoneRenderMode.Minimal ? 0.16f + (0.16f * wave) : 0.18f + (0.24f * wave);
+                segments[i].color = WithAlpha(segmentPurple, alpha);
             }
+        }
+
+        private float ComputeAdaptiveInset(float availableSpan)
+        {
+            var proportionalInset = availableSpan * 0.14f;
+            return Mathf.Clamp(proportionalInset, 1f, zoneInset);
+        }
+
+        private ZoneRenderMode ResolveRenderMode(float zoneWidth)
+        {
+            if (zoneWidth <= railWidth * 1.35f)
+            {
+                return ZoneRenderMode.Minimal;
+            }
+
+            return zoneWidth <= railWidth * 2.15f ? ZoneRenderMode.Medium : ZoneRenderMode.Full;
+        }
+
+        private float ResolveRailWidth(float zoneWidth, ZoneRenderMode mode)
+        {
+            var widthFactor = mode == ZoneRenderMode.Minimal ? 0.36f : mode == ZoneRenderMode.Medium ? 0.3f : 0.26f;
+            var maxWidth = mode == ZoneRenderMode.Minimal ? railWidth * 0.78f : mode == ZoneRenderMode.Medium ? railWidth * 0.9f : railWidth;
+            return Mathf.Clamp(zoneWidth * widthFactor, 1.5f, maxWidth);
         }
 
         private static void SetZoneActive(RectTransform zone, bool active)
