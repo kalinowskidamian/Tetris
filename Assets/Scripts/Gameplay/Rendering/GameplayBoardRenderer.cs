@@ -55,6 +55,8 @@ namespace Tetris.Gameplay.Rendering
         private readonly List<Image> gridLines = new();
         private readonly List<Image> lineClearEffectBlocks = new();
         private float lineClearRowsPulse;
+        private float lineClearEffectTimer;
+        private float lineClearEffectDuration = 0.5f;
         private readonly List<int> lineClearRows = new();
 
         private void Awake()
@@ -277,7 +279,7 @@ namespace Tetris.Gameplay.Rendering
             return color;
         }
 
-        public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity)
+        public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity, float durationSeconds = 0.5f)
         {
             lineClearRows.Clear();
             if (rows != null)
@@ -288,14 +290,28 @@ namespace Tetris.Gameplay.Rendering
                 }
             }
 
+            if (lineClearRows.Count == 0)
+            {
+                lineClearRowsPulse = 0f;
+                lineClearEffectTimer = 0f;
+                return;
+            }
+
             lineClearRowsPulse = Mathf.Clamp01(Mathf.Max(lineClearRowsPulse, intensity));
+            lineClearEffectDuration = Mathf.Max(0.1f, durationSeconds);
+            lineClearEffectTimer = lineClearEffectDuration;
         }
 
         private void UpdateLineClearPulse()
         {
-            lineClearRowsPulse = Mathf.Max(0f, lineClearRowsPulse - Time.deltaTime * 8.5f);
+            if (lineClearEffectTimer > 0f)
+            {
+                lineClearEffectTimer = Mathf.Max(0f, lineClearEffectTimer - Time.deltaTime);
+                return;
+            }
 
-            if (lineClearRowsPulse <= 0f)
+            lineClearRowsPulse = 0f;
+            if (lineClearRows.Count > 0)
             {
                 lineClearRows.Clear();
             }
@@ -508,8 +524,9 @@ namespace Tetris.Gameplay.Rendering
         {
             EnsureLineClearEffectPool(lineClearRows.Count);
 
-            var flashPulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 66f));
-            var flashAmount = Mathf.Clamp01(lineClearRowsPulse * 1.5f) * Mathf.Lerp(0.7f, 1f, flashPulse);
+            var elapsed = Mathf.Max(0f, lineClearEffectDuration - lineClearEffectTimer);
+            var blink = 0.5f + (0.5f * Mathf.Sin(elapsed * 48f));
+            var intensity = Mathf.Lerp(0.35f, 1f, blink) * lineClearRowsPulse;
             var edgeColor = new Color(0.62f, 0.96f, 1f, 1f);
             for (var i = 0; i < lineClearRows.Count; i++)
             {
@@ -517,7 +534,7 @@ namespace Tetris.Gameplay.Rendering
                 var effectBlock = lineClearEffectBlocks[i];
                 effectBlock.gameObject.SetActive(true);
 
-                var flashColor = Color.Lerp(new Color(edgeColor.r, edgeColor.g, edgeColor.b, 0f), edgeColor, flashAmount);
+                var flashColor = Color.Lerp(new Color(edgeColor.r, edgeColor.g, edgeColor.b, 0f), edgeColor, intensity);
                 SetupLineClearEffectRow(effectBlock, row, flashColor, metrics);
             }
 
