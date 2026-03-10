@@ -41,4 +41,7 @@ This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 - Board anchor is expanded upward so spawn presentation starts clearly below the HUD visual region.
 - Grid rendering is strengthened with higher-opacity neon lines and slightly thicker strokes for better cell readability.
 - Line clear feedback now uses a brief, energetic per-cell pulse: the actual cleared-row cells flash/blink with a bright energized tint before disappearing, while non-cleared rows/background remain unchanged.
-- Legacy decorative backdrop rectangles were removed and replaced by a runtime-generated board-surround neon treatment: subtle side rails, inner glow accents, and small pulsing travel segments positioned outside the gameplay cells.
+- Neon side ambience is now owned by a dedicated `GameplaySideNeonRenderer` attached to `GameplayLayoutRoot`, instead of `GameplayBoardRenderer`.
+- The side renderer computes left/right decoration zones from the full gameplay rect minus the live board rect, then renders rails and segmented animated accents strictly in those side bars.
+- Neon animation runs continuously during gameplay (unscaled time), stays visible-but-subtle, and never draws over board cells, ghost piece, grid, or HUD.
+- This is runtime-only wiring through `GameplayRootController`; setup regeneration is not required after pull.
