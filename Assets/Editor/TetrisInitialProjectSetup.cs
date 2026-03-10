@@ -186,7 +186,7 @@ namespace Tetris.Editor
             boardAspect.aspectRatio = 0.5f;
 
             GameObject hudRoot = new("HUDRoot", typeof(RectTransform), typeof(HUDLayoutAnchor));
-            ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.05f, 0.845f), new Vector2(0.95f, 0.958f));
+            ConfigureChildLayout(hudRoot.GetComponent<RectTransform>(), gameplayRect, new Vector2(0.05f, 0.885f), new Vector2(0.95f, 0.998f));
 
             GameObject scoreInfoAnchor = new("ScoreInfoAnchor", typeof(RectTransform), typeof(ScoreInfoAnchor));
             ConfigureChildLayout(scoreInfoAnchor.GetComponent<RectTransform>(), hudRoot.GetComponent<RectTransform>(), new Vector2(0.01f, 0.07f), new Vector2(0.56f, 0.93f));

@@ -15,7 +15,7 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private RectTransform darkBackdropRect;
         [SerializeField] private RectTransform neonWashRect;
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
-        [SerializeField, Range(2f, 30f)] private float railWidth = 15f;
+        [SerializeField, Range(2f, 48f)] private float railWidth = 30f;
         [SerializeField, Range(0.2f, 0.95f)] private float railHeightFactor = 0.9f;
         [SerializeField, Range(0.1f, 4f)] private float animationSpeed = 1.15f;
         [SerializeField] private Color outerRailCyan = new(0.1f, 0.94f, 1f, 0.35f);
@@ -320,13 +320,13 @@ namespace Tetris.Gameplay.Rendering
             var horizontalSign = rightSide ? -1f : 1f;
             var mode = ResolveRenderMode(zoneRect.width);
             var outerRailWidth = ResolveRailWidth(zoneRect.width, mode);
-            var railPadding = Mathf.Max(outerRailWidth * 0.56f, zoneRect.width * 0.06f);
+            var railPadding = Mathf.Max(outerRailWidth * 0.42f, zoneRect.width * 0.04f);
             var localRailX = ((zoneRect.width * 0.5f) - railPadding) * horizontalSign;
             var railHeight = zoneRect.height * (mode == ZoneRenderMode.Minimal ? Mathf.Clamp(railHeightFactor - 0.1f, 0.55f, 0.92f) : railHeightFactor);
 
-            var innerRailWidth = Mathf.Max(1.25f, outerRailWidth * (mode == ZoneRenderMode.Full ? 0.68f : 0.58f));
+            var innerRailWidth = Mathf.Max(1.25f, outerRailWidth * (mode == ZoneRenderMode.Full ? 0.74f : 0.66f));
             var innerRailHeight = railHeight * (mode == ZoneRenderMode.Minimal ? 0.72f : 0.84f);
-            var innerRailOffset = horizontalSign * (outerRailWidth * 0.8f);
+            var innerRailOffset = horizontalSign * (outerRailWidth * 0.92f);
 
             decor.OuterRail.enabled = true;
             decor.InnerRail.enabled = true;
@@ -365,8 +365,8 @@ namespace Tetris.Gameplay.Rendering
 
         private float ResolveRailWidth(float zoneWidth, ZoneRenderMode mode)
         {
-            var widthFactor = mode == ZoneRenderMode.Minimal ? 0.46f : mode == ZoneRenderMode.Medium ? 0.42f : 0.38f;
-            var maxWidth = mode == ZoneRenderMode.Minimal ? railWidth * 0.9f : mode == ZoneRenderMode.Medium ? railWidth * 1.05f : railWidth * 1.12f;
+            var widthFactor = mode == ZoneRenderMode.Minimal ? 0.84f : mode == ZoneRenderMode.Medium ? 0.78f : 0.72f;
+            var maxWidth = mode == ZoneRenderMode.Minimal ? railWidth * 1.05f : mode == ZoneRenderMode.Medium ? railWidth * 1.22f : railWidth * 1.36f;
             return Mathf.Clamp(zoneWidth * widthFactor, 1.5f, maxWidth);
         }
 
