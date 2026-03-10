@@ -40,8 +40,6 @@ namespace Tetris.Gameplay
         private bool reducedEffects;
         private float lineClearOverlayTimer;
         private Image lineClearOverlay;
-        private RectTransform decorativeBackdropRoot;
-        private readonly List<Image> sideDecorations = new();
 
         private void Awake()
         {
@@ -100,8 +98,6 @@ namespace Tetris.Gameplay
             {
                 return;
             }
-
-            UpdateSideDecorations();
 
             if (gameplayRuntime.IsGameOver)
             {
@@ -364,8 +360,7 @@ namespace Tetris.Gameplay
 
             EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0);
             EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1);
-            decorativeBackdropRoot = EnsureBackdropRoot(boardRoot);
-            EnsureSideDecorations(decorativeBackdropRoot);
+            RemoveLegacyDecorativeBackdropRoot(boardRoot);
             lineClearOverlay = EnsureBackdrop(boardRoot, "LineClearOverlay", new Color(0.58f, 0.96f, 1f, 0f), 3);
         }
 
@@ -461,86 +456,12 @@ namespace Tetris.Gameplay
             color.a = alpha;
             lineClearOverlay.color = color;
         }
-        private static RectTransform EnsureBackdropRoot(RectTransform parent)
+        private static void RemoveLegacyDecorativeBackdropRoot(RectTransform parent)
         {
             var root = parent.Find("DecorativeBackdropRoot") as RectTransform;
-            if (root == null)
+            if (root != null)
             {
-                root = new GameObject("DecorativeBackdropRoot", typeof(RectTransform)).GetComponent<RectTransform>();
-                root.SetParent(parent, false);
-                root.anchorMin = Vector2.zero;
-                root.anchorMax = Vector2.one;
-                root.offsetMin = Vector2.zero;
-                root.offsetMax = Vector2.zero;
-            }
-
-            root.SetSiblingIndex(2);
-            return root;
-        }
-
-        private void EnsureSideDecorations(RectTransform parent)
-        {
-            if (parent == null)
-            {
-                return;
-            }
-
-            sideDecorations.Clear();
-            EnsureSideDecoration(parent, "LeftRailPrimary", new Vector2(0.03f, 0.12f), new Vector2(0.08f, 0.90f), new Color(0.1f, 0.75f, 1f, 0.24f));
-            EnsureSideDecoration(parent, "LeftRailSecondary", new Vector2(0.085f, 0.2f), new Vector2(0.107f, 0.78f), new Color(0.72f, 0.3f, 1f, 0.2f));
-            EnsureSideDecoration(parent, "RightRailPrimary", new Vector2(0.92f, 0.12f), new Vector2(0.97f, 0.90f), new Color(0.1f, 0.75f, 1f, 0.24f));
-            EnsureSideDecoration(parent, "RightRailSecondary", new Vector2(0.893f, 0.2f), new Vector2(0.915f, 0.78f), new Color(0.72f, 0.3f, 1f, 0.2f));
-            EnsureSideDecoration(parent, "LeftNode", new Vector2(0.028f, 0.48f), new Vector2(0.075f, 0.56f), new Color(0.95f, 0.44f, 1f, 0.17f));
-            EnsureSideDecoration(parent, "RightNode", new Vector2(0.925f, 0.42f), new Vector2(0.972f, 0.50f), new Color(0.95f, 0.44f, 1f, 0.17f));
-        }
-
-        private void EnsureSideDecoration(RectTransform parent, string name, Vector2 minAnchor, Vector2 maxAnchor, Color color)
-        {
-            var rect = parent.Find(name) as RectTransform;
-            if (rect == null)
-            {
-                rect = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
-                rect.SetParent(parent, false);
-            }
-
-            rect.anchorMin = minAnchor;
-            rect.anchorMax = maxAnchor;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-
-            var image = rect.GetComponent<Image>();
-            image.color = color;
-            image.raycastTarget = false;
-            sideDecorations.Add(image);
-        }
-
-        private void UpdateSideDecorations()
-        {
-            if (sideDecorations.Count == 0)
-            {
-                return;
-            }
-
-            var pulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 1.8f));
-            var drift = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 1.1f));
-
-            for (var i = 0; i < sideDecorations.Count; i++)
-            {
-                var image = sideDecorations[i];
-                if (image == null)
-                {
-                    continue;
-                }
-
-                var baseColor = image.color;
-                var baseAlpha = i < 4 ? 0.15f : 0.10f;
-                var animated = baseAlpha + (0.10f * pulse) + (0.04f * Mathf.Sin((Time.unscaledTime * 2.8f) + i));
-                baseColor.a = Mathf.Clamp01(animated);
-                image.color = baseColor;
-
-                var rect = image.rectTransform;
-                var offset = (i % 2 == 0 ? 1f : -1f) * (2f + 6f * drift);
-                rect.anchoredPosition = new Vector2(offset, rect.anchoredPosition.y);
+                Destroy(root.gameObject);
             }
         }
 

@@ -41,4 +41,4 @@ This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 - Board anchor is expanded upward so spawn presentation starts clearly below the HUD visual region.
 - Grid rendering is strengthened with higher-opacity neon lines and slightly thicker strokes for better cell readability.
 - Line clear feedback now uses a brief, energetic line-destruction style pulse: cleared rows flash/blink white-cyan before disappearing, with a short board pulse for impact.
-- Side bars now include lightweight animated neon rails/nodes to replace flat black areas with subtle sci-fi ambient motion.
+- Legacy decorative backdrop rectangles were removed and replaced by a runtime-generated board-surround neon treatment: subtle side rails, inner glow accents, and small pulsing travel segments positioned outside the gameplay cells.

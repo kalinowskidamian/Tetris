@@ -16,6 +16,13 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
+        [SerializeField, Range(10f, 180f)] private float neonRailOffset = 54f;
+        [SerializeField, Range(2f, 20f)] private float neonRailWidth = 8f;
+        [SerializeField, Range(18f, 160f)] private float neonSegmentHeight = 52f;
+        [SerializeField, Range(16f, 180f)] private float neonSegmentTravel = 70f;
+        [SerializeField] private Color neonRailColor = new(0.16f, 0.88f, 1f, 0.18f);
+        [SerializeField] private Color neonRailGlowColor = new(0.68f, 0.35f, 1f, 0.11f);
+        [SerializeField] private Color neonSegmentColor = new(0.72f, 0.95f, 1f, 0.24f);
         [SerializeField] private Color boardGridColor = new(0.35f, 0.82f, 1f, 0.56f);
         [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.65f;
         [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.17f, 0.58f);
@@ -36,6 +43,13 @@ namespace Tetris.Gameplay.Rendering
         private Image boardBackground;
         private Image boardFrame;
         private Image boardOuterGlow;
+        private RectTransform neonDecorRoot;
+        private Image leftRail;
+        private Image rightRail;
+        private Image leftInnerGlow;
+        private Image rightInnerGlow;
+        private Image leftSegment;
+        private Image rightSegment;
         private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
         private readonly List<Image> lineClearEffectBlocks = new();
@@ -83,6 +97,7 @@ namespace Tetris.Gameplay.Rendering
             boardOuterGlow = EnsureChromeImage("BoardOuterGlow", -3, boardOuterGlowColor);
             boardBackground = EnsureChromeImage("BoardBackground", -2, boardBackgroundColor);
             boardFrame = EnsureChromeImage("BoardFrame", -1, boardFrameColor);
+            EnsureNeonDecor();
         }
 
         private Image EnsureChromeImage(string name, int siblingIndex, Color color)
@@ -121,6 +136,95 @@ namespace Tetris.Gameplay.Rendering
             boardOuterGlow.color = Color.Lerp(boardOuterGlowColor, new Color(0.28f, 0.85f, 1f, 0.42f), pulse);
             SetRect(boardBackground.rectTransform, boardRect.center, boardRect.size);
             SetRect(boardFrame.rectTransform, boardRect.center, boardRect.size + framePadding * 2f);
+            UpdateNeonDecor(metrics, pulse);
+        }
+
+        private void EnsureNeonDecor()
+        {
+            var root = transform.Find("BoardNeonDecorRoot") as RectTransform;
+            if (root == null)
+            {
+                root = new GameObject("BoardNeonDecorRoot", typeof(RectTransform)).GetComponent<RectTransform>();
+                root.SetParent(transform, false);
+            }
+
+            neonDecorRoot = root;
+            neonDecorRoot.SetSiblingIndex(0);
+            neonDecorRoot.anchorMin = Vector2.zero;
+            neonDecorRoot.anchorMax = Vector2.zero;
+            neonDecorRoot.pivot = new Vector2(0.5f, 0.5f);
+
+            leftRail = EnsureDecorImage(neonDecorRoot, "LeftRail", neonRailColor);
+            rightRail = EnsureDecorImage(neonDecorRoot, "RightRail", neonRailColor);
+            leftInnerGlow = EnsureDecorImage(neonDecorRoot, "LeftInnerGlow", neonRailGlowColor);
+            rightInnerGlow = EnsureDecorImage(neonDecorRoot, "RightInnerGlow", neonRailGlowColor);
+            leftSegment = EnsureDecorImage(neonDecorRoot, "LeftSegment", neonSegmentColor);
+            rightSegment = EnsureDecorImage(neonDecorRoot, "RightSegment", neonSegmentColor);
+        }
+
+        private Image EnsureDecorImage(RectTransform parent, string name, Color color)
+        {
+            var child = parent.Find(name) as RectTransform;
+            if (child == null)
+            {
+                child = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                child.SetParent(parent, false);
+            }
+
+            var image = child.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.sprite = blockSprite != null ? blockSprite : CreateBlockSprite();
+            image.type = Image.Type.Sliced;
+            image.color = color;
+            return image;
+        }
+
+        private void UpdateNeonDecor(BoardMetrics metrics, float lineClearPulseAmount)
+        {
+            if (neonDecorRoot == null)
+            {
+                return;
+            }
+
+            var boardRect = metrics.BoardRect;
+            neonDecorRoot.anchoredPosition = Vector2.zero;
+            neonDecorRoot.sizeDelta = rootRect.rect.size;
+
+            var railHeight = Mathf.Max(24f, boardRect.height * 0.88f);
+            var railCenterY = boardRect.center.y;
+            var basePulse = 0.5f + (0.5f * Mathf.Sin(Time.unscaledTime * 1.55f));
+            var segmentWave = Mathf.Sin(Time.unscaledTime * 1.9f);
+            var segmentOffset = segmentWave * neonSegmentTravel;
+
+            PlaceDecorStrip(leftRail.rectTransform, new Vector2(boardRect.xMin - neonRailOffset, railCenterY), new Vector2(neonRailWidth, railHeight));
+            PlaceDecorStrip(rightRail.rectTransform, new Vector2(boardRect.xMax + neonRailOffset, railCenterY), new Vector2(neonRailWidth, railHeight));
+            PlaceDecorStrip(leftInnerGlow.rectTransform, new Vector2(boardRect.xMin - (neonRailOffset * 0.66f), railCenterY), new Vector2(neonRailWidth * 0.75f, railHeight * 0.78f));
+            PlaceDecorStrip(rightInnerGlow.rectTransform, new Vector2(boardRect.xMax + (neonRailOffset * 0.66f), railCenterY), new Vector2(neonRailWidth * 0.75f, railHeight * 0.78f));
+            PlaceDecorStrip(leftSegment.rectTransform, new Vector2(boardRect.xMin - neonRailOffset, railCenterY + segmentOffset), new Vector2(neonRailWidth * 1.7f, neonSegmentHeight));
+            PlaceDecorStrip(rightSegment.rectTransform, new Vector2(boardRect.xMax + neonRailOffset, railCenterY - segmentOffset), new Vector2(neonRailWidth * 1.7f, neonSegmentHeight));
+
+            var pulseBoost = Mathf.Lerp(0f, 0.14f, lineClearPulseAmount);
+            leftRail.color = WithAlpha(neonRailColor, 0.11f + (0.09f * basePulse) + pulseBoost);
+            rightRail.color = WithAlpha(neonRailColor, 0.11f + (0.09f * (1f - basePulse)) + pulseBoost);
+            leftInnerGlow.color = WithAlpha(neonRailGlowColor, 0.08f + (0.06f * basePulse) + (pulseBoost * 0.8f));
+            rightInnerGlow.color = WithAlpha(neonRailGlowColor, 0.08f + (0.06f * (1f - basePulse)) + (pulseBoost * 0.8f));
+            leftSegment.color = WithAlpha(neonSegmentColor, 0.12f + (0.14f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 2.4f))) + pulseBoost);
+            rightSegment.color = WithAlpha(neonSegmentColor, 0.12f + (0.14f * (0.5f + 0.5f * Mathf.Sin((Time.unscaledTime * 2.4f) + 1.2f))) + pulseBoost);
+        }
+
+        private static void PlaceDecorStrip(RectTransform rect, Vector2 center, Vector2 size)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = center;
+            rect.sizeDelta = size;
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = Mathf.Clamp01(alpha);
+            return color;
         }
 
         public void TriggerLineClearPulse(float intensity)
