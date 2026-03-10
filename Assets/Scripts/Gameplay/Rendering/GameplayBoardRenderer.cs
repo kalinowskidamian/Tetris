@@ -13,7 +13,8 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField, Range(0f, 3f)] private float visibleTopPaddingRows = 1.9f;
         [SerializeField, Range(0f, 48f)] private float boardFrameThickness = 10f;
         [SerializeField, Range(0f, 28f)] private float boardOuterGlowThickness = 18f;
-        [SerializeField] private Color boardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
+        private static readonly Color LegacyBoardBackgroundColor = new(0.03f, 0.04f, 0.09f, 0.96f);
+        [SerializeField] private Color boardBackgroundColor = new(0.5098f, 0.549f, 0.5059f, 0.96f); // #828C81
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
         [SerializeField] private Color boardGridColor = new(0.35f, 0.82f, 1f, 0.56f);
@@ -54,6 +55,13 @@ namespace Tetris.Gameplay.Rendering
             rootRect = (RectTransform)transform;
             blockSprite = CreateBlockSprite();
             EnsureBoardChrome();
+        }
+
+
+        [ContextMenu("Restore Legacy Board Background")]
+        private void RestoreLegacyBoardBackground()
+        {
+            boardBackgroundColor = LegacyBoardBackgroundColor;
         }
 
         public void Render(BoardModel board, ActivePieceState? activePiece, ActivePieceState? ghostPiece)

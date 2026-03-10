@@ -32,6 +32,9 @@ namespace Tetris.Gameplay
         [Header("Debug")]
         [SerializeField] private bool enableKeyboardDebugInEditor = true;
 
+        private static readonly Vector2 HudRootAnchorMin = new(0.05f, 0.92f);
+        private static readonly Vector2 HudRootAnchorMax = new(0.95f, 1f);
+
         private GameplayRuntime gameplayRuntime;
         private GameplayBoardRenderer boardRenderer;
         private GameplayHudRenderer hudRenderer;
@@ -80,6 +83,7 @@ namespace Tetris.Gameplay
             }
 
             var hudRootRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
+            ApplyHudLayout(hudRootRect);
             var scoreRect = scoreInfoAnchor != null ? scoreInfoAnchor.GetComponent<RectTransform>() : null;
             var previewRect = nextPiecePreviewAnchor != null ? nextPiecePreviewAnchor.GetComponent<RectTransform>() : null;
             var holdRect = holdPiecePreviewAnchor != null ? holdPiecePreviewAnchor.GetComponent<RectTransform>() : null;
@@ -194,6 +198,19 @@ namespace Tetris.Gameplay
             {
                 touchInputSource = inputRouter.GetComponent<MobileTouchGameplayInputSource>();
             }
+        }
+
+        private static void ApplyHudLayout(RectTransform hudRootRect)
+        {
+            if (hudRootRect == null)
+            {
+                return;
+            }
+
+            hudRootRect.anchorMin = HudRootAnchorMin;
+            hudRootRect.anchorMax = HudRootAnchorMax;
+            hudRootRect.offsetMin = Vector2.zero;
+            hudRootRect.offsetMax = Vector2.zero;
         }
 
         private void ConfigureInputRouting()
