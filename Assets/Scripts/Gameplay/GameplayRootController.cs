@@ -35,6 +35,7 @@ namespace Tetris.Gameplay
         private GameplayRuntime gameplayRuntime;
         private GameplayBoardRenderer boardRenderer;
         private GameplayHudRenderer hudRenderer;
+        private GameplaySideNeonRenderer sideNeonRenderer;
         private float gravityTimer;
         private float lockDelayTimer;
         private bool isPaused;
@@ -62,6 +63,18 @@ namespace Tetris.Gameplay
             if (boardRenderer == null)
             {
                 boardRenderer = boardAnchor.gameObject.AddComponent<GameplayBoardRenderer>();
+            }
+
+            var gameplayLayoutRoot = FindFirstObjectByType<GameplayLayoutRoot>();
+            if (gameplayLayoutRoot != null)
+            {
+                sideNeonRenderer = gameplayLayoutRoot.GetComponent<GameplaySideNeonRenderer>();
+                if (sideNeonRenderer == null)
+                {
+                    sideNeonRenderer = gameplayLayoutRoot.gameObject.AddComponent<GameplaySideNeonRenderer>();
+                }
+
+                sideNeonRenderer.BindBoardRect(boardAnchor.GetComponent<RectTransform>());
             }
 
             var hudRootRect = hudAnchor != null ? hudAnchor.GetComponent<RectTransform>() : null;
