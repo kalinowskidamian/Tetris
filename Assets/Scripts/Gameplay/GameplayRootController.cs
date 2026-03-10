@@ -38,8 +38,6 @@ namespace Tetris.Gameplay
         private float lockDelayTimer;
         private bool isPaused;
         private bool reducedEffects;
-        private float lineClearOverlayTimer;
-        private Image lineClearOverlay;
 
         private void Awake()
         {
@@ -112,14 +110,12 @@ namespace Tetris.Gameplay
             if (isPaused)
             {
                 ProcessPauseInput();
-                UpdateLineClearOverlay();
                 Render();
                 return;
             }
 
             var changed = ProcessInputStep();
             changed |= ProcessGravityStep();
-            UpdateLineClearOverlay();
 
             if (changed)
             {
@@ -308,11 +304,6 @@ namespace Tetris.Gameplay
             gravityTimer = 0f;
             lockDelayTimer = 0f;
             isPaused = false;
-            lineClearOverlayTimer = 0f;
-            if (lineClearOverlay != null)
-            {
-                lineClearOverlay.color = new Color(0.3f, 0.92f, 1f, 0f);
-            }
 
             if (boardRenderer != null)
             {
@@ -330,15 +321,8 @@ namespace Tetris.Gameplay
 
         private void HandleLinesCleared(IReadOnlyList<LineClearFeedbackSnapshot> rows)
         {
-            lineClearOverlayTimer = reducedEffects ? 0.10f : 0.20f;
-            if (lineClearOverlay != null)
-            {
-                lineClearOverlay.color = new Color(0.58f, 0.96f, 1f, reducedEffects ? 0.14f : 0.32f);
-            }
-
             if (boardRenderer != null)
             {
-                boardRenderer.TriggerLineClearPulse(reducedEffects ? 0.45f : 0.95f);
                 boardRenderer.TriggerLineClearRows(rows, reducedEffects ? 0.72f : 1f);
             }
 
@@ -361,7 +345,11 @@ namespace Tetris.Gameplay
             EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0);
             EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1);
             RemoveLegacyDecorativeBackdropRoot(boardRoot);
-            lineClearOverlay = EnsureBackdrop(boardRoot, "LineClearOverlay", new Color(0.58f, 0.96f, 1f, 0f), 3);
+            var lineClearOverlay = boardRoot.Find("LineClearOverlay");
+            if (lineClearOverlay != null)
+            {
+                Destroy(lineClearOverlay.gameObject);
+            }
         }
 
         private static Image EnsureBackdrop(RectTransform parent, string name, Color color, int siblingIndex)
@@ -434,28 +422,6 @@ namespace Tetris.Gameplay
             Debug.Log("Menu return requested, but MainMenu scene is unavailable. Placeholder hook is active.");
         }
 
-        private void UpdateLineClearOverlay()
-        {
-            if (lineClearOverlay == null)
-            {
-                return;
-            }
-
-            if (lineClearOverlayTimer <= 0f)
-            {
-                var c = lineClearOverlay.color;
-                c.a = 0f;
-                lineClearOverlay.color = c;
-                return;
-            }
-
-            lineClearOverlayTimer = Mathf.Max(0f, lineClearOverlayTimer - Time.deltaTime);
-            var targetAlpha = reducedEffects ? 0.14f : 0.32f;
-            var alpha = Mathf.Clamp01(lineClearOverlayTimer / (reducedEffects ? 0.10f : 0.20f)) * targetAlpha;
-            var color = lineClearOverlay.color;
-            color.a = alpha;
-            lineClearOverlay.color = color;
-        }
         private static void RemoveLegacyDecorativeBackdropRoot(RectTransform parent)
         {
             var root = parent.Find("DecorativeBackdropRoot") as RectTransform;
