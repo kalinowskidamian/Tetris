@@ -429,10 +429,11 @@ namespace Tetris.Gameplay.Rendering
         {
             for (var y = 0; y < board.Height; y++)
             {
+                var rowHasLineClearEffect = IsRowInLineClearEffectSet(y);
                 for (var x = 0; x < board.Width; x++)
                 {
                     var pieceId = board.GetCell(new CellCoord(x, y));
-                    if (!pieceId.HasValue)
+                    if (!pieceId.HasValue || rowHasLineClearEffect)
                     {
                         continue;
                     }
@@ -555,6 +556,7 @@ namespace Tetris.Gameplay.Rendering
                 for (var x = 0; x < cells.Count; x++)
                 {
                     var effectBlock = lineClearEffectBlocks[index++];
+                    effectBlock.transform.SetAsLastSibling();
                     var baseColor = GetLockedCellColor(GetPieceColor(cells[x]));
                     var flashColor = Color.Lerp(baseColor, lineClearEnergizedColor, pulse);
                     flashColor.a = Mathf.Lerp(baseColor.a, 1f, pulse) * fade;
@@ -606,6 +608,11 @@ namespace Tetris.Gameplay.Rendering
             var count = 0;
             for (var y = 0; y < board.Height; y++)
             {
+                if (IsRowInLineClearEffectSet(y))
+                {
+                    continue;
+                }
+
                 for (var x = 0; x < board.Width; x++)
                 {
                     if (board.GetCell(new CellCoord(x, y)).HasValue)
@@ -643,6 +650,24 @@ namespace Tetris.Gameplay.Rendering
                 : 0;
         }
 
+        private bool IsRowInLineClearEffectSet(int row)
+        {
+            if (lineClearEffectTimer <= 0f)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < lineClearRowSnapshots.Count; i++)
+            {
+                if (lineClearRowSnapshots[i].Row == row)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private void EnsurePool(int count)
         {
             while (blocks.Count < count)
@@ -669,7 +694,7 @@ namespace Tetris.Gameplay.Rendering
             {
                 var block = new GameObject($"LineClearEffect_{lineClearEffectBlocks.Count}", typeof(RectTransform), typeof(Image));
                 block.transform.SetParent(transform, false);
-                block.transform.SetSiblingIndex(4);
+                block.transform.SetAsLastSibling();
 
                 var rect = (RectTransform)block.transform;
                 rect.anchorMin = new Vector2(0f, 0f);
