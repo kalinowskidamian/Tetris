@@ -16,7 +16,6 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private RectTransform neonWashRect;
         [SerializeField, Range(0f, 24f)] private float zoneInset = 8f;
         [SerializeField, Range(2f, 48f)] private float railWidth = 30f;
-        [SerializeField, Range(0.2f, 1f)] private float railHeightFactor = 1f;
         [SerializeField, Range(0.1f, 4f)] private float animationSpeed = 1.15f;
         [SerializeField] private Color outerRailCyan = new(0.1f, 0.94f, 1f, 0.35f);
         [SerializeField] private Color outerRailMagenta = new(0.92f, 0.34f, 1f, 0.34f);
@@ -306,7 +305,7 @@ namespace Tetris.Gameplay.Rendering
             var outerRailWidth = ResolveRailWidth(zoneRect.width, mode);
             var railPadding = Mathf.Max(outerRailWidth * 0.42f, zoneRect.width * 0.04f);
             var localRailX = ((zoneRect.width * 0.5f) - railPadding) * horizontalSign;
-            var railHeight = zoneRect.height * railHeightFactor;
+            var railHeight = zoneRect.height;
 
             var innerRailWidth = Mathf.Max(1.25f, outerRailWidth * (mode == ZoneRenderMode.Full ? 0.74f : 0.66f));
             var innerRailHeight = railHeight * (mode == ZoneRenderMode.Minimal ? 0.72f : 0.84f);
