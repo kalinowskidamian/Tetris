@@ -48,8 +48,17 @@ Gameplay code is split into three layers under `Assets/Scripts/Gameplay`:
 
 `GameplayBoardRenderer` and HUD rendering now apply a darker neon/sci-fi presentation using Unity-native `Image`/`Text` elements only (no imported art).
 
+## Gameplay Presentation Pass (Preview/Grid/Pause)
+- **Next-piece preview correctness:** preview rendering now uses the same piece rotation state and positive-Y orientation convention as gameplay spawn, so previewed shapes match spawned pieces exactly.
+- **Board grid:** board rendering now draws a subtle code-driven cell grid behind active/locked cells, aligned to board metrics and sized from the same cell step used for gameplay blocks.
+- **Line-clear feedback:** a lightweight line-clear pulse now triggers a short board flash/pulse plus a brief gameplay-area neon overlay accent.
+- **Pause flow:** gameplay now supports a runtime pause state. While paused, gravity/input lock progression stops and a pause/settings overlay is shown.
+- **Minimal in-game settings:** pause overlay includes resume, restart run, effects intensity toggle (full/reduced), and a menu placeholder button that only loads `MainMenu` if that scene is available.
+
 ## Setup Workflow Compatibility
-Setup now includes a `HoldPiecePreviewAnchor` and a more compact top HUD anchor split (`score`, `hold`, `next`). Runtime still creates visual child objects idempotently.
+Setup includes a `HoldPiecePreviewAnchor` and a compact top HUD anchor split (`score`, `hold`, `next`). Runtime-created presentation objects (grid lines, pause/settings overlay, line-clear overlay) are built idempotently from existing anchors.
+
+**Setup regeneration required after this PR?** No. Existing setup-generated scenes remain compatible; re-running setup is optional and safe/idempotent.
 
 ## Mobile Control Mapping (Pass 2)
 - Tap left half of screen (outside board): move left.

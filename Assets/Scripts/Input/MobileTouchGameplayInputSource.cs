@@ -76,12 +76,12 @@ namespace Tetris.Input
             if (absY >= swipeThreshold && absY > absX && delta.y < 0f)
             {
                 var hardDrop = absY >= hardDropMinSwipePixels && duration <= hardDropMaxDuration;
-                return new GameplayInputSnapshot(false, hardDrop, GestureKind.SwipeDown);
+                return new GameplayInputSnapshot(false, hardDrop, false, GestureKind.SwipeDown);
             }
 
             if (absY >= holdMinSwipePixels && absY > absX && delta.y > 0f)
             {
-                return new GameplayInputSnapshot(false, true, GestureKind.SwipeUp);
+                return new GameplayInputSnapshot(false, true, false, GestureKind.SwipeUp);
             }
 
             var tapMaxDuration = inputRouter != null ? inputRouter.TapMaxDuration : 0.2f;
@@ -95,7 +95,7 @@ namespace Tetris.Input
                     gesture = touchStartPosition.x < Screen.width * 0.5f ? GestureKind.SwipeLeft : GestureKind.SwipeRight;
                 }
 
-                return new GameplayInputSnapshot(true, false, gesture);
+                return new GameplayInputSnapshot(true, false, false, gesture);
             }
 
             return default;
