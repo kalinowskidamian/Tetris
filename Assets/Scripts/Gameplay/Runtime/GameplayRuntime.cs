@@ -25,7 +25,7 @@ namespace Tetris.Gameplay.Runtime
         public PieceDefinition HeldPiece { get; private set; }
         public bool CanHoldThisTurn { get; private set; }
 
-        public event Action<IReadOnlyList<int>> LinesClearedFeedbackRequested;
+        public event Action<IReadOnlyList<LineClearFeedbackSnapshot>> LinesClearedFeedbackRequested;
         public event Action GameOver;
 
         public void Start()
@@ -187,16 +187,42 @@ namespace Tetris.Gameplay.Runtime
         {
             var active = ActivePiece.Value;
             board.Lock(active.Definition, active.Origin, active.RotationIndex);
-            var cleared = board.ClearFullLines();
+            var fullRows = board.GetFullLines();
+            var feedbackSnapshot = BuildLineClearFeedback(fullRows);
+            board.ClearLines(fullRows);
+            var cleared = fullRows;
             ApplyProgression(cleared.Count);
 
             if (cleared.Count > 0)
             {
-                LinesClearedFeedbackRequested?.Invoke(cleared);
+                LinesClearedFeedbackRequested?.Invoke(feedbackSnapshot);
             }
 
             SpawnFromNext();
             return cleared;
+        }
+
+        private IReadOnlyList<LineClearFeedbackSnapshot> BuildLineClearFeedback(IReadOnlyList<int> rows)
+        {
+            if (rows == null || rows.Count == 0)
+            {
+                return Array.Empty<LineClearFeedbackSnapshot>();
+            }
+
+            var result = new LineClearFeedbackSnapshot[rows.Count];
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var cells = new PieceId[board.Width];
+                for (var x = 0; x < board.Width; x++)
+                {
+                    cells[x] = board.GetCell(new CellCoord(x, row)).Value;
+                }
+
+                result[i] = new LineClearFeedbackSnapshot(row, cells);
+            }
+
+            return result;
         }
 
         private void ApplyProgression(int clearedCount)
