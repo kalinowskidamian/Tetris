@@ -40,5 +40,5 @@ This keeps gameplay presenters and UI binders robust if hierarchy names evolve.
 - HUD band is intentionally reduced to a compact strip to keep score/hold/next readable while giving the board most of the portrait space.
 - Board anchor is expanded upward so spawn presentation starts clearly below the HUD visual region.
 - Grid rendering is strengthened with higher-opacity neon lines and slightly thicker strokes for better cell readability.
-- Line clear feedback now uses a brief, energetic line-destruction style pulse: cleared rows flash/blink white-cyan before disappearing, with a short board pulse for impact.
+- Line clear feedback now uses a brief, energetic per-cell pulse: the actual cleared-row cells flash/blink with a bright energized tint before disappearing, while non-cleared rows/background remain unchanged.
 - Legacy decorative backdrop rectangles were removed and replaced by a runtime-generated board-surround neon treatment: subtle side rails, inner glow accents, and small pulsing travel segments positioned outside the gameplay cells.

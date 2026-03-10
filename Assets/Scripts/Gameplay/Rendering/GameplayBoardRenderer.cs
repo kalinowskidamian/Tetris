@@ -54,10 +54,13 @@ namespace Tetris.Gameplay.Rendering
         private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
         private readonly List<Image> lineClearEffectBlocks = new();
+        private readonly List<LineClearFeedbackSnapshot> lineClearRowSnapshots = new();
         private float lineClearRowsPulse;
         private float lineClearEffectTimer;
         private float lineClearEffectDuration = 0.5f;
-        private readonly List<int> lineClearRows = new();
+        [SerializeField, Range(2f, 24f)] private float lineClearBlinkFrequency = 12f;
+        [SerializeField, Range(0f, 0.5f)] private float lineClearEndFadeFraction = 0.30f;
+        [SerializeField] private Color lineClearEnergizedColor = new(0.88f, 0.97f, 1f, 1f);
 
         private void Awake()
         {
@@ -281,16 +284,16 @@ namespace Tetris.Gameplay.Rendering
 
         public void TriggerLineClearRows(IReadOnlyList<LineClearFeedbackSnapshot> rows, float intensity, float durationSeconds = 0.5f)
         {
-            lineClearRows.Clear();
+            lineClearRowSnapshots.Clear();
             if (rows != null)
             {
                 for (var i = 0; i < rows.Count; i++)
                 {
-                    lineClearRows.Add(rows[i].Row);
+                    lineClearRowSnapshots.Add(rows[i]);
                 }
             }
 
-            if (lineClearRows.Count == 0)
+            if (lineClearRowSnapshots.Count == 0)
             {
                 lineClearRowsPulse = 0f;
                 lineClearEffectTimer = 0f;
@@ -311,9 +314,9 @@ namespace Tetris.Gameplay.Rendering
             }
 
             lineClearRowsPulse = 0f;
-            if (lineClearRows.Count > 0)
+            if (lineClearRowSnapshots.Count > 0)
             {
-                lineClearRows.Clear();
+                lineClearRowSnapshots.Clear();
             }
         }
 
@@ -522,34 +525,80 @@ namespace Tetris.Gameplay.Rendering
 
         private void RenderLineClearEffect(BoardMetrics metrics)
         {
-            EnsureLineClearEffectPool(lineClearRows.Count);
+            var highlightCellCount = CountLineClearEffectCells();
+            EnsureLineClearEffectPool(highlightCellCount);
 
-            var elapsed = Mathf.Max(0f, lineClearEffectDuration - lineClearEffectTimer);
-            var blink = 0.5f + (0.5f * Mathf.Sin(elapsed * 48f));
-            var intensity = Mathf.Lerp(0.35f, 1f, blink) * lineClearRowsPulse;
-            var edgeColor = new Color(0.62f, 0.96f, 1f, 1f);
-            for (var i = 0; i < lineClearRows.Count; i++)
+            if (highlightCellCount == 0)
             {
-                var row = lineClearRows[i];
-                var effectBlock = lineClearEffectBlocks[i];
-                effectBlock.gameObject.SetActive(true);
-
-                var flashColor = Color.Lerp(new Color(edgeColor.r, edgeColor.g, edgeColor.b, 0f), edgeColor, intensity);
-                SetupLineClearEffectRow(effectBlock, row, flashColor, metrics);
+                DisableUnusedLineClearEffects(0);
+                return;
             }
 
-            for (var i = lineClearRows.Count; i < lineClearEffectBlocks.Count; i++)
+            var elapsed = Mathf.Max(0f, lineClearEffectDuration - lineClearEffectTimer);
+            var normalizedTime = lineClearEffectDuration > 0f
+                ? Mathf.Clamp01(elapsed / lineClearEffectDuration)
+                : 1f;
+            var blink = 0.5f + (0.5f * Mathf.Sin(elapsed * lineClearBlinkFrequency * Mathf.PI * 2f));
+            var pulse = Mathf.Lerp(0.32f, 1f, blink) * lineClearRowsPulse;
+            var fade = CalculateLineClearFade(normalizedTime);
+
+            var index = 0;
+            for (var i = 0; i < lineClearRowSnapshots.Count; i++)
+            {
+                var snapshot = lineClearRowSnapshots[i];
+                var cells = snapshot.Cells;
+                if (cells == null)
+                {
+                    continue;
+                }
+
+                for (var x = 0; x < cells.Count; x++)
+                {
+                    var effectBlock = lineClearEffectBlocks[index++];
+                    var baseColor = GetLockedCellColor(GetPieceColor(cells[x]));
+                    var flashColor = Color.Lerp(baseColor, lineClearEnergizedColor, pulse);
+                    flashColor.a = Mathf.Lerp(baseColor.a, 1f, pulse) * fade;
+                    SetupBlock(effectBlock, x, snapshot.Row, flashColor, metrics);
+                }
+            }
+
+            DisableUnusedLineClearEffects(index);
+        }
+
+        private float CalculateLineClearFade(float normalizedTime)
+        {
+            var fadeFraction = Mathf.Clamp01(lineClearEndFadeFraction);
+            if (fadeFraction <= 0f)
+            {
+                return 1f;
+            }
+
+            var fadeStart = 1f - fadeFraction;
+            if (normalizedTime <= fadeStart)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp01(1f - ((normalizedTime - fadeStart) / fadeFraction));
+        }
+
+        private int CountLineClearEffectCells()
+        {
+            var count = 0;
+            for (var i = 0; i < lineClearRowSnapshots.Count; i++)
+            {
+                count += lineClearRowSnapshots[i].Cells?.Count ?? 0;
+            }
+
+            return count;
+        }
+
+        private void DisableUnusedLineClearEffects(int usedCount)
+        {
+            for (var i = usedCount; i < lineClearEffectBlocks.Count; i++)
             {
                 lineClearEffectBlocks[i].gameObject.SetActive(false);
             }
-        }
-
-        private void SetupLineClearEffectRow(Image block, int row, Color color, BoardMetrics metrics)
-        {
-            block.color = color;
-            var rect = block.rectTransform;
-            rect.anchoredPosition = new Vector2(metrics.BoardRect.center.x, metrics.GetCellPosition(0, row).y);
-            rect.sizeDelta = new Vector2(metrics.BoardRect.width, metrics.CellSize.y * 0.72f);
         }
 
         private int CountBoardCells(BoardModel board)

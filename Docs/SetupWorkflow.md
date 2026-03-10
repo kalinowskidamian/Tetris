@@ -25,5 +25,5 @@ The setup action is designed to be safe to run repeatedly:
 - Assign Android player settings, app icon, and package ID per release plan.
 
 ## Current PR Note
-- Yes, rerun `Tools/Tetris/Apply Initial Project Setup` after pulling this change.
-- This PR updates generated Gameplay scene anchors (smaller HUD band, taller board zone, and tighter score/hold/next panel spacing) and expects regenerated scene layout for clean alignment.
+- No setup regeneration is required after pulling this change.
+- This PR only strengthens runtime line-clear cell flashing/pulsing while preserving the existing delayed-clear timing and collapse flow.
