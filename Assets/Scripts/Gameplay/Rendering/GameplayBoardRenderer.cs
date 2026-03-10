@@ -17,7 +17,10 @@ namespace Tetris.Gameplay.Rendering
         [SerializeField] private Color boardFrameColor = new(0.15f, 0.85f, 1f, 0.72f);
         [SerializeField] private Color boardOuterGlowColor = new(0.10f, 0.34f, 0.52f, 0.26f);
         [SerializeField] private Color boardGridColor = new(0.26f, 0.63f, 0.85f, 0.32f);
-        [SerializeField, Range(0.5f, 2.5f)] private float gridLineThickness = 1.35f;
+        [SerializeField, Range(0.5f, 3.5f)] private float gridLineThickness = 2.15f;
+        [SerializeField] private Color boardCellToneA = new(0.05f, 0.10f, 0.16f, 0.44f);
+        [SerializeField] private Color boardCellToneB = new(0.08f, 0.14f, 0.22f, 0.52f);
+        [SerializeField] private Color boardCellBorderColor = new(0.24f, 0.57f, 0.78f, 0.22f);
         [SerializeField] private Color iPieceColor = new(0f, 0.95f, 1f, 1f);
         [SerializeField] private Color oPieceColor = new(1f, 0.92f, 0.25f, 1f);
         [SerializeField] private Color tPieceColor = new(0.82f, 0.45f, 1f, 1f);
@@ -33,6 +36,7 @@ namespace Tetris.Gameplay.Rendering
         private Image boardBackground;
         private Image boardFrame;
         private Image boardOuterGlow;
+        private readonly List<Image> cellBackgrounds = new();
         private readonly List<Image> gridLines = new();
         private float lineClearPulse;
         private float lineClearRowsPulse;
@@ -54,6 +58,7 @@ namespace Tetris.Gameplay.Rendering
 
             var metrics = BoardMetrics.Create(rootRect.rect.size, board.Width, board.Height, cellPaddingRatio, visibleTopPaddingRows);
             UpdateBoardChrome(metrics);
+            RenderCellBackgrounds(board, metrics);
             RenderGrid(board, metrics);
             UpdateLineClearPulse();
 
@@ -178,6 +183,53 @@ namespace Tetris.Gameplay.Rendering
             }
         }
 
+        private void RenderCellBackgrounds(BoardModel board, BoardMetrics metrics)
+        {
+            var cellCount = board.Width * board.Height;
+            EnsureCellBackgroundPool(cellCount);
+
+            var index = 0;
+            for (var y = 0; y < board.Height; y++)
+            {
+                for (var x = 0; x < board.Width; x++)
+                {
+                    var cell = cellBackgrounds[index++];
+                    cell.gameObject.SetActive(true);
+                    cell.color = ((x + y) & 1) == 0 ? boardCellToneA : boardCellToneB;
+                    var rect = cell.rectTransform;
+                    rect.sizeDelta = metrics.CellSize;
+                    rect.anchoredPosition = metrics.GetCellPosition(x, y);
+                }
+            }
+        }
+
+        private void EnsureCellBackgroundPool(int count)
+        {
+            while (cellBackgrounds.Count < count)
+            {
+                var go = new GameObject($"BoardCell_{cellBackgrounds.Count}", typeof(RectTransform), typeof(Image), typeof(Outline));
+                go.transform.SetParent(transform, false);
+                go.transform.SetSiblingIndex(1);
+
+                var image = go.GetComponent<Image>();
+                image.raycastTarget = false;
+                image.sprite = blockSprite != null ? blockSprite : CreateBlockSprite();
+                image.type = Image.Type.Simple;
+
+                var border = go.GetComponent<Outline>();
+                border.effectColor = boardCellBorderColor;
+                border.effectDistance = new Vector2(1f, -1f);
+                border.useGraphicAlpha = true;
+
+                var rect = (RectTransform)go.transform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.zero;
+                rect.pivot = new Vector2(0.5f, 0.5f);
+
+                cellBackgrounds.Add(image);
+            }
+        }
+
         private void EnsureGridPool(int count)
         {
             while (gridLines.Count < count)
@@ -217,7 +269,7 @@ namespace Tetris.Gameplay.Rendering
                     }
 
                     var block = blocks[index++];
-                    SetupBlock(block, x, y, GetBoardCellColor(GetPieceColor(pieceId.Value), y), metrics);
+                    SetupBlock(block, x, y, GetBoardCellColor(GetLockedCellColor(GetPieceColor(pieceId.Value)), y), metrics);
                 }
             }
 
@@ -240,8 +292,7 @@ namespace Tetris.Gameplay.Rendering
             }
 
             var cells = ghost.Definition.GetRotationState(ghost.RotationIndex);
-            var ghostColor = ghost.Definition.TokenColor;
-            ghostColor.a = ghostAlpha;
+            var ghostColor = GetGhostCellColor(ghost.Definition.TokenColor);
 
             for (var i = 0; i < cells.Length; i++)
             {
@@ -266,7 +317,7 @@ namespace Tetris.Gameplay.Rendering
             {
                 var worldCell = active.Origin + cells[i];
                 var block = blocks[index++];
-                SetupBlock(block, worldCell.X, worldCell.Y, active.Definition.TokenColor, metrics);
+                SetupBlock(block, worldCell.X, worldCell.Y, GetActiveCellColor(active.Definition.TokenColor), metrics);
             }
 
             return index;
@@ -284,6 +335,27 @@ namespace Tetris.Gameplay.Rendering
             var energized = Color.Lerp(baseColor, Color.white, flash);
             energized.a = Mathf.Lerp(baseColor.a, 1f, flash);
             return energized;
+        }
+
+        private Color GetLockedCellColor(Color baseColor)
+        {
+            var shaded = Color.Lerp(baseColor, new Color(0.02f, 0.03f, 0.05f, 1f), 0.17f);
+            shaded.a = 0.95f;
+            return shaded;
+        }
+
+        private static Color GetActiveCellColor(Color baseColor)
+        {
+            var boosted = Color.Lerp(baseColor, Color.white, 0.20f);
+            boosted.a = 1f;
+            return boosted;
+        }
+
+        private Color GetGhostCellColor(Color baseColor)
+        {
+            var cooled = Color.Lerp(baseColor, boardGridColor, 0.58f);
+            cooled.a = ghostAlpha;
+            return cooled;
         }
 
         private void SetupBlock(Image block, int x, int y, Color color, BoardMetrics metrics)
