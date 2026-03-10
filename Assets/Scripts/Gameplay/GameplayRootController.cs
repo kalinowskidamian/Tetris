@@ -4,6 +4,7 @@ using Tetris.Gameplay.Rendering;
 using Tetris.Gameplay.Runtime;
 using Tetris.Input;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Tetris.Gameplay
@@ -35,6 +36,10 @@ namespace Tetris.Gameplay
         private GameplayHudRenderer hudRenderer;
         private float gravityTimer;
         private float lockDelayTimer;
+        private bool isPaused;
+        private bool reducedEffects;
+        private float lineClearOverlayTimer;
+        private Image lineClearOverlay;
 
         private void Awake()
         {
@@ -63,7 +68,16 @@ namespace Tetris.Gameplay
             var scoreRect = scoreInfoAnchor != null ? scoreInfoAnchor.GetComponent<RectTransform>() : null;
             var previewRect = nextPiecePreviewAnchor != null ? nextPiecePreviewAnchor.GetComponent<RectTransform>() : null;
             var holdRect = holdPiecePreviewAnchor != null ? holdPiecePreviewAnchor.GetComponent<RectTransform>() : null;
-            hudRenderer = new GameplayHudRenderer(hudRootRect, scoreRect, previewRect, holdRect);
+            hudRenderer = new GameplayHudRenderer(
+                hudRootRect,
+                scoreRect,
+                previewRect,
+                holdRect,
+                PauseRun,
+                ResumeRun,
+                RestartRun,
+                ToggleEffectsIntensity,
+                ReturnToMenuIfAvailable);
             ApplyBackdropChrome();
             ConfigureInputRouting();
         }
@@ -95,8 +109,17 @@ namespace Tetris.Gameplay
                 return;
             }
 
+            if (isPaused)
+            {
+                ProcessPauseInput();
+                UpdateLineClearOverlay();
+                Render();
+                return;
+            }
+
             var changed = ProcessInputStep();
             changed |= ProcessGravityStep();
+            UpdateLineClearOverlay();
 
             if (changed)
             {
@@ -188,6 +211,20 @@ namespace Tetris.Gameplay
                 return false;
             }
 
+            if (snapshot.PauseRequested)
+            {
+                if (isPaused)
+                {
+                    ResumeRun();
+                }
+                else
+                {
+                    PauseRun();
+                }
+
+                return true;
+            }
+
             var changed = false;
 
             if (snapshot.HoldRequested && snapshot.GestureKind == GestureKind.SwipeDown)
@@ -270,6 +307,12 @@ namespace Tetris.Gameplay
         {
             gravityTimer = 0f;
             lockDelayTimer = 0f;
+            isPaused = false;
+            lineClearOverlayTimer = 0f;
+            if (lineClearOverlay != null)
+            {
+                lineClearOverlay.color = new Color(0.3f, 0.92f, 1f, 0f);
+            }
             gameplayRuntime.Start();
             Render();
         }
@@ -282,6 +325,17 @@ namespace Tetris.Gameplay
 
         private void HandleLinesCleared(IReadOnlyList<int> rows)
         {
+            lineClearOverlayTimer = reducedEffects ? 0.08f : 0.18f;
+            if (lineClearOverlay != null)
+            {
+                lineClearOverlay.color = new Color(0.3f, 0.92f, 1f, reducedEffects ? 0.10f : 0.22f);
+            }
+
+            if (boardRenderer != null)
+            {
+                boardRenderer.TriggerLineClearPulse(reducedEffects ? 0.35f : 0.8f);
+            }
+
             Debug.Log($"Lines cleared: {rows.Count} (total {gameplayRuntime.LinesCleared})");
         }
 
@@ -300,9 +354,10 @@ namespace Tetris.Gameplay
 
             EnsureBackdrop(boardRoot, "GameplayDarkBackdrop", new Color(0.01f, 0.015f, 0.035f, 1f), 0);
             EnsureBackdrop(boardRoot, "GameplayNeonWash", new Color(0.08f, 0.16f, 0.28f, 0.15f), 1);
+            lineClearOverlay = EnsureBackdrop(boardRoot, "LineClearOverlay", new Color(0.3f, 0.92f, 1f, 0f), 2);
         }
 
-        private static void EnsureBackdrop(RectTransform parent, string name, Color color, int siblingIndex)
+        private static Image EnsureBackdrop(RectTransform parent, string name, Color color, int siblingIndex)
         {
             var existing = parent.Find(name) as RectTransform;
             if (existing == null)
@@ -319,12 +374,80 @@ namespace Tetris.Gameplay
             var image = existing.GetComponent<Image>();
             image.color = color;
             image.raycastTarget = false;
+            return image;
         }
 
         private void Render()
         {
             boardRenderer.Render(gameplayRuntime.Board, gameplayRuntime.ActivePiece, gameplayRuntime.GetGhostPiece());
-            hudRenderer?.Render(gameplayRuntime);
+            hudRenderer?.Render(gameplayRuntime, isPaused, reducedEffects);
+        }
+
+        private void ProcessPauseInput()
+        {
+            if (inputRouter == null || !inputRouter.TryReadSnapshot(out var snapshot) || !snapshot.HasAnyAction)
+            {
+                return;
+            }
+
+            if (snapshot.PauseRequested || snapshot.TapRequested)
+            {
+                ResumeRun();
+            }
+        }
+
+        private void PauseRun()
+        {
+            isPaused = true;
+        }
+
+        private void ResumeRun()
+        {
+            isPaused = false;
+        }
+
+        private void RestartRun()
+        {
+            StartNewRun();
+        }
+
+        private void ToggleEffectsIntensity()
+        {
+            reducedEffects = !reducedEffects;
+        }
+
+        private void ReturnToMenuIfAvailable()
+        {
+            if (Application.CanStreamedLevelBeLoaded("MainMenu"))
+            {
+                SceneManager.LoadScene("MainMenu");
+                return;
+            }
+
+            Debug.Log("Menu return requested, but MainMenu scene is unavailable. Placeholder hook is active.");
+        }
+
+        private void UpdateLineClearOverlay()
+        {
+            if (lineClearOverlay == null)
+            {
+                return;
+            }
+
+            if (lineClearOverlayTimer <= 0f)
+            {
+                var c = lineClearOverlay.color;
+                c.a = 0f;
+                lineClearOverlay.color = c;
+                return;
+            }
+
+            lineClearOverlayTimer = Mathf.Max(0f, lineClearOverlayTimer - Time.deltaTime);
+            var targetAlpha = reducedEffects ? 0.10f : 0.22f;
+            var alpha = Mathf.Clamp01(lineClearOverlayTimer / (reducedEffects ? 0.08f : 0.18f)) * targetAlpha;
+            var color = lineClearOverlay.color;
+            color.a = alpha;
+            lineClearOverlay.color = color;
         }
     }
 }

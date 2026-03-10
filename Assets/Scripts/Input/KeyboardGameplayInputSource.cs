@@ -9,6 +9,7 @@ namespace Tetris.Input
         {
             var tap = false;
             var hold = false;
+            var pause = false;
             var gesture = GestureKind.None;
 
             if (UnityInput.GetKeyDown(KeyCode.LeftArrow))
@@ -39,8 +40,12 @@ namespace Tetris.Input
                 hold = true;
                 gesture = GestureKind.SwipeUp;
             }
+            else if (UnityInput.GetKeyDown(KeyCode.Escape) || UnityInput.GetKeyDown(KeyCode.P))
+            {
+                pause = true;
+            }
 
-            return new GameplayInputSnapshot(tap, hold, gesture);
+            return new GameplayInputSnapshot(tap, hold, pause, gesture);
         }
     }
 }

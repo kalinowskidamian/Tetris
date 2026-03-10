@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using Tetris.Gameplay.Domain;
 using Tetris.Gameplay.Runtime;
 using UnityEngine;
@@ -12,6 +13,11 @@ namespace Tetris.Gameplay.Rendering
         private readonly RectTransform scoreAnchor;
         private readonly RectTransform nextPreviewAnchor;
         private readonly RectTransform holdPreviewAnchor;
+        private readonly Action pauseRequested;
+        private readonly Action resumeRequested;
+        private readonly Action restartRequested;
+        private readonly Action toggleEffectsRequested;
+        private readonly Action menuRequested;
 
         private readonly Font defaultFont;
         private readonly List<Image> nextPreviewCells = new();
@@ -21,15 +27,31 @@ namespace Tetris.Gameplay.Rendering
         private Text linesValueText;
         private Text levelValueText;
         private Text gameOverText;
+        private RectTransform pauseOverlay;
+        private Text effectsToggleText;
         private RectTransform nextPreviewContentArea;
         private RectTransform holdPreviewContentArea;
 
-        public GameplayHudRenderer(RectTransform hudRoot, RectTransform scoreAnchor, RectTransform nextPreviewAnchor, RectTransform holdPreviewAnchor)
+        public GameplayHudRenderer(
+            RectTransform hudRoot,
+            RectTransform scoreAnchor,
+            RectTransform nextPreviewAnchor,
+            RectTransform holdPreviewAnchor,
+            Action pauseRequested,
+            Action resumeRequested,
+            Action restartRequested,
+            Action toggleEffectsRequested,
+            Action menuRequested)
         {
             this.hudRoot = hudRoot;
             this.scoreAnchor = scoreAnchor;
             this.nextPreviewAnchor = nextPreviewAnchor;
             this.holdPreviewAnchor = holdPreviewAnchor;
+            this.pauseRequested = pauseRequested;
+            this.resumeRequested = resumeRequested;
+            this.restartRequested = restartRequested;
+            this.toggleEffectsRequested = toggleEffectsRequested;
+            this.menuRequested = menuRequested;
             defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         }
 
@@ -40,9 +62,11 @@ namespace Tetris.Gameplay.Rendering
             nextPreviewContentArea = EnsurePreviewPanel(nextPreviewAnchor, "NextPanel", "NEXT");
             holdPreviewContentArea = EnsurePreviewPanel(holdPreviewAnchor, "HoldPanel", "HOLD");
             EnsureGameOverText();
+            EnsurePauseButton();
+            EnsurePauseOverlay();
         }
 
-        public void Render(GameplayRuntime runtime)
+        public void Render(GameplayRuntime runtime, bool isPaused, bool reducedEffects)
         {
             if (runtime == null)
             {
@@ -69,6 +93,16 @@ namespace Tetris.Gameplay.Rendering
             if (gameOverText != null)
             {
                 gameOverText.gameObject.SetActive(runtime.IsGameOver);
+            }
+
+            if (pauseOverlay != null)
+            {
+                pauseOverlay.gameObject.SetActive(isPaused && !runtime.IsGameOver);
+            }
+
+            if (effectsToggleText != null)
+            {
+                effectsToggleText.text = reducedEffects ? "Effects: Reduced" : "Effects: Full";
             }
 
             RenderPreview(runtime.NextPiece, nextPreviewContentArea, nextPreviewCells);
@@ -166,8 +200,8 @@ namespace Tetris.Gameplay.Rendering
             var height = maxY - minY + 1;
             var gridSize = Mathf.Min(contentArea.rect.width, contentArea.rect.height) * 0.82f;
             var step = gridSize / Mathf.Max(width, height);
-            var startX = -((width - 1) * step) * 0.5f;
-            var startY = ((height - 1) * step) * 0.5f;
+            var centerX = (minX + maxX) * 0.5f;
+            var centerY = (minY + maxY) * 0.5f;
 
             for (var i = 0; i < shape.Length; i++)
             {
@@ -179,9 +213,77 @@ namespace Tetris.Gameplay.Rendering
                 var rect = (RectTransform)image.transform;
                 rect.sizeDelta = new Vector2(step * 0.82f, step * 0.82f);
                 rect.anchoredPosition = new Vector2(
-                    startX + (cell.X - minX) * step,
-                    startY - (cell.Y - minY) * step);
+                    (cell.X - centerX) * step,
+                    (cell.Y - centerY) * step);
             }
+        }
+
+        private void EnsurePauseButton()
+        {
+            if (hudRoot == null)
+            {
+                return;
+            }
+
+            var button = EnsureButton(hudRoot, "PauseButton", "II", new Vector2(0.89f, 0.08f), new Vector2(0.97f, 0.26f), pauseRequested);
+            var buttonImage = button.GetComponent<Image>();
+            buttonImage.color = new Color(0.09f, 0.17f, 0.3f, 0.88f);
+        }
+
+        private void EnsurePauseOverlay()
+        {
+            if (hudRoot == null)
+            {
+                return;
+            }
+
+            pauseOverlay = EnsureContainer(hudRoot, "PauseOverlay", new Vector2(0f, 0f), new Vector2(1f, 1f));
+            pauseOverlay.GetComponent<Image>().color = new Color(0.01f, 0.02f, 0.05f, 0.82f);
+            pauseOverlay.gameObject.SetActive(false);
+
+            EnsureLabel(pauseOverlay, "PauseTitle", new Vector2(0.2f, 0.68f), new Vector2(0.8f, 0.86f), 30, TextAnchor.MiddleCenter).text = "PAUSED";
+            EnsureButton(pauseOverlay, "ResumeButton", "Resume", new Vector2(0.26f, 0.52f), new Vector2(0.74f, 0.64f), resumeRequested);
+            EnsureButton(pauseOverlay, "RestartButton", "Restart Run", new Vector2(0.26f, 0.38f), new Vector2(0.74f, 0.5f), restartRequested);
+            var effectsButton = EnsureButton(pauseOverlay, "EffectsButton", "Effects", new Vector2(0.26f, 0.24f), new Vector2(0.74f, 0.36f), toggleEffectsRequested);
+            effectsToggleText = effectsButton.GetComponentInChildren<Text>();
+
+            if (menuRequested != null)
+            {
+                EnsureButton(pauseOverlay, "MenuButton", "Menu (placeholder)", new Vector2(0.26f, 0.10f), new Vector2(0.74f, 0.22f), menuRequested);
+            }
+        }
+
+        private Button EnsureButton(RectTransform parent, string name, string label, Vector2 minAnchor, Vector2 maxAnchor, Action callback)
+        {
+            var rect = EnsureContainer(parent, name, minAnchor, maxAnchor);
+            var button = rect.GetComponent<Button>() ?? rect.gameObject.AddComponent<Button>();
+            button.onClick.RemoveAllListeners();
+            if (callback != null)
+            {
+                button.onClick.AddListener(() => callback.Invoke());
+            }
+
+            var image = rect.GetComponent<Image>();
+            image.color = new Color(0.08f, 0.12f, 0.22f, 0.92f);
+            var text = EnsureLabel(rect, $"{name}Label", new Vector2(0.06f, 0.1f), new Vector2(0.94f, 0.9f), 20, TextAnchor.MiddleCenter);
+            text.text = label;
+            return button;
+        }
+
+        private static RectTransform EnsureContainer(RectTransform parent, string name, Vector2 minAnchor, Vector2 maxAnchor)
+        {
+            var child = parent.Find(name) as RectTransform;
+            if (child == null)
+            {
+                child = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                child.SetParent(parent, false);
+            }
+
+            child.anchorMin = minAnchor;
+            child.anchorMax = maxAnchor;
+            child.offsetMin = Vector2.zero;
+            child.offsetMax = Vector2.zero;
+            return child;
         }
 
         private static void EnsurePreviewPool(List<Image> cellPool, RectTransform parent, int count)
